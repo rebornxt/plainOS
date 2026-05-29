@@ -20,6 +20,7 @@
     appId: "1:345883383293:web:80e5baee94e32cdc523594",
     measurementId: "G-YP9VEW0K6M"
   };
+     
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -71,7 +72,7 @@ body {
   background: var(--color-bg-base);
   color: var(--color-text-primary);
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: auto;
   -webkit-font-smoothing: antialiased;
 }
 .font-mono, .mono, .price, .number { font-family: var(--font-mono); }
@@ -637,7 +638,7 @@ body {
 /* ========== RECIPE DETAIL 2-COLUMN ========== */
 .recipe-detail-layout {
   display: grid;
-  grid-template-columns: 380px 1fr;
+  grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
   gap: var(--space-lg);
   align-items: start;
 }
@@ -669,37 +670,48 @@ body {
 
 /* ========== STEPPER ========== */
 .stepper {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 5px;
 }
 .stepper button {
-  width: 44px; height: 44px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: none;
   background: var(--color-bg-elevated);
   font-family: var(--font-mono);
-  font-size: 20px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-secondary);
+  color: var(--color-primary);
+  box-shadow: 0 1px 2px rgba(44,24,16,0.14);
   transition: all 150ms ease;
 }
-.stepper button:hover { background: var(--color-primary-xlight); color: var(--color-primary); }
-.stepper button:disabled { opacity: 0.4; cursor: not-allowed; }
+.stepper button:hover { background: var(--color-primary); color: #fff; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(139,94,60,0.28); }
+.stepper button:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; background: var(--color-bg-elevated); color: var(--color-primary); transform: none; }
 .stepper input {
-  width: 64px; height: 44px;
+  width: 60px; height: 40px;
   text-align: center;
   font-family: var(--font-mono);
-  font-size: 18px;
-  font-weight: 600;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-elevated);
+  font-size: 19px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
   color: var(--color-text-primary);
 }
+.stepper input:focus { outline: none; }
+/* hide native number spinners for a cleaner pill */
+.stepper input::-webkit-outer-spin-button,
+.stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stepper input[type=number] { -moz-appearance: textfield; }
 
 /* ========== DONUT CHART ========== */
 .donut-container {
@@ -1056,14 +1068,18 @@ body {
 .donut-svg-container svg {
   width: 100%; height: 100%;
   transform: rotate(-90deg);
+  overflow: visible;
+  filter: drop-shadow(0 6px 14px rgba(44,24,16,0.14));
 }
 .donut-slice {
-  transition: opacity 200ms ease, filter 200ms ease;
+  transition: transform 220ms cubic-bezier(0.34,1.4,0.64,1), opacity 200ms ease, filter 200ms ease;
   cursor: pointer;
+  transform-origin: 120px 120px;
+  stroke-linejoin: round;
 }
 .donut-slice:hover {
-  filter: brightness(1.1);
-  opacity: 0.9;
+  transform: scale(1.06);
+  filter: brightness(1.06);
 }
 .donut-center-overlay {
   position: absolute;
@@ -1109,13 +1125,48 @@ body {
 }
 .donut-legend-item:hover { opacity: 0.8; }
 .donut-legend-swatch {
-  width: 10px; height: 10px;
-  border-radius: 2px;
+  width: 13px; height: 13px;
+  border-radius: 4px;
   flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
 .donut-legend-name { flex: 1; font-weight: 500; }
 .donut-legend-cost { font-family: var(--font-mono); font-size: 12px; color: var(--color-primary); }
 .donut-legend-pct { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); min-width: 42px; text-align: right; }
+
+/* per-% baht helper under Overhead / VAT / Labor */
+.pct-baht {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-primary);
+  margin-top: 4px;
+  min-height: 16px;
+}
+
+/* Donut hover tooltip (ingredient breakdown) */
+.donut-tip {
+  position: fixed;
+  z-index: 200;
+  pointer-events: none;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-elevation-3);
+  padding: 10px 12px;
+  font-size: 12px;
+  min-width: 190px;
+  max-width: 280px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+.donut-tip.show { opacity: 1; transform: translateY(0); }
+.donut-tip-title { font-weight: 700; margin-bottom: 6px; display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.donut-tip-title .tt-sum { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-secondary); white-space: nowrap; }
+.donut-tip-row { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; color: var(--color-text-secondary); }
+.donut-tip-row .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.donut-tip-row .ct { font-family: var(--font-mono); white-space: nowrap; }
 
 /* ========== RECIPE OVERVIEW ENHANCED ========== */
 .recipe-header-row {
@@ -1184,6 +1235,10 @@ body {
 /* ========== RESPONSIVE ========== */
 @media (max-width: 1279px) {
   .recipe-card-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 1180px) {
+  /* Stack the recipe detail before the 2-column layout would overflow */
+  .recipe-detail-layout { grid-template-columns: 1fr; }
 }
 @media (max-width: 1023px) {
   .sidebar { width: 64px; transform: translateX(0); }
@@ -1310,6 +1365,30 @@ body {
 .sync-switch input:checked + .sync-slider::before { transform: translateX(20px); }
 .sync-switch input:focus-visible + .sync-slider { box-shadow: 0 0 0 3px rgba(196,136,90,0.3); }
 textarea.sync-field { resize: vertical; min-height: 120px; line-height: 1.5; }
+
+/* ===== Category manager (editable rows) ===== */
+.cat-row {
+  display: grid;
+  grid-template-columns: 46px 42px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.cat-row .cat-emoji { width: 46px; text-align: center; padding: 8px 2px; font-size: 16px; }
+.cat-row .cat-color {
+  width: 42px; height: 42px; padding: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  cursor: pointer;
+}
+.cat-row .cat-name { width: 100%; }
+.cat-row-actions { display: flex; gap: 4px; }
+@media (max-width: 560px) {
+  .cat-row { grid-template-columns: 46px 42px minmax(0, 1fr); }
+  .cat-row-actions { grid-column: 1 / -1; justify-content: flex-end; }
+}
 
 /* ===== Donut: dim sibling slices on hover (UI Spec §7.2) ===== */
 .donut-svg-container:hover .donut-slice:not(:hover) { opacity: 0.6; }
@@ -1449,9 +1528,9 @@ textarea.sync-field { resize: vertical; min-height: 120px; line-height: 1.5; }
             <div>
               <label class="input-label">จำนวนชิ้นต่อ Batch *</label>
               <div class="stepper">
-                <button onclick="stepperChange(-1)" id="stepperDown">➖</button>
+                <button onclick="stepperChange(-1)" id="stepperDown" aria-label="ลดจำนวน">−</button>
                 <input type="number" id="rcpPieces" value="1" min="1" max="9999" oninput="onRecipeFieldChange();recalculateRecipeDebounced()">
-                <button onclick="stepperChange(1)" id="stepperUp">➕</button>
+                <button onclick="stepperChange(1)" id="stepperUp" aria-label="เพิ่มจำนวน">+</button>
               </div>
             </div>
             <div style="border-top:1px solid var(--color-border);padding-top:var(--space-md)">
@@ -1466,6 +1545,7 @@ textarea.sync-field { resize: vertical; min-height: 120px; line-height: 1.5; }
                 <input type="number" class="input-field" style="padding-right:36px" id="rcpOverhead" value="0" min="0" max="100" step="0.01" oninput="onRecipeFieldChange();recalculateRecipeDebounced()">
                 <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:14px;color:var(--color-text-secondary)">%</span>
               </div>
+              <div class="pct-baht" id="rcpOverheadBaht"></div>
             </div>
             <div>
               <label class="input-label">VAT (ถ้ามี)</label>
@@ -1473,6 +1553,7 @@ textarea.sync-field { resize: vertical; min-height: 120px; line-height: 1.5; }
                 <input type="number" class="input-field" style="padding-right:36px" id="rcpVat" value="0" min="0" max="100" step="0.01" oninput="onRecipeFieldChange();recalculateRecipeDebounced()">
                 <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:14px;color:var(--color-text-secondary)">%</span>
               </div>
+              <div class="pct-baht" id="rcpVatBaht"></div>
             </div>
             <div>
               <label class="input-label">
@@ -1486,6 +1567,7 @@ textarea.sync-field { resize: vertical; min-height: 120px; line-height: 1.5; }
                 <input type="number" class="input-field" style="padding-right:36px" id="rcpLabor" value="0" min="0" max="100" step="0.01" oninput="onRecipeFieldChange();recalculateRecipeDebounced()">
                 <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:14px;color:var(--color-text-secondary)">%</span>
               </div>
+              <div class="pct-baht" id="rcpLaborBaht"></div>
             </div>
             <button class="btn btn-primary" style="width:100%" onclick="saveCurrentRecipe()">💾 บันทึกสูตร</button>
           </div>
@@ -1664,6 +1746,10 @@ service cloud.firestore {
         <span class="error-msg" id="ingNameError" role="alert" style="display:none;color:var(--color-accent-red);font-size:12px;margin-top:4px"></span>
       </div>
       <div>
+        <label class="input-label">แหล่งที่ซื้อ</label>
+        <input type="text" class="input-field" id="ingFormSource" placeholder="เช่น Makro, ตลาดไท, ร้านเบเกอรี่..." style="font-family:var(--font-thai)" autocomplete="off">
+      </div>
+      <div>
         <label class="input-label">ประเภท *</label>
         <select class="select-field" id="ingFormCategory"></select>
       </div>
@@ -1678,10 +1764,10 @@ service cloud.firestore {
           <div>
             <label style="font-size:12px;color:var(--color-text-muted);display:block;margin-bottom:4px">หน่วยแพ็คเกจ</label>
             <select class="select-field" id="ingFormPackUnit" onchange="updateCostPerGramPreview()">
-              <option value="kg">กิโลกรัม (kg)</option>
-              <option value="g">กรัม (g)</option>
-              <option value="L">ลิตร (L)</option>
-              <option value="ml">มิลลิลิตร (ml)</option>
+              <option value="กก.">กิโลกรัม (kg)</option>
+              <option value="กรัม">กรัม (g)</option>
+              <option value="ลิตร">ลิตร (L)</option>
+              <option value="มล.">มิลลิลิตร (ml)</option>
             </select>
           </div>
         </div>
@@ -1833,19 +1919,59 @@ const DENSITY_MAP = {
  *  CATEGORY TAG COLORS (from PRD §1.5)
  * =================================================================== */
 const CATEGORY_COLORS = {
-  'flour': { bg: '#FFF3E0', text: '#8B5E3C', border: '#F2DCC8', emoji: '🌾' },
-  'butter_fat': { bg: '#FFFDE7', text: '#7A6020', border: '#F5E6A3', emoji: '🧈' },
-  'milk_cream': { bg: '#E8F5E9', text: '#2E7D50', border: '#B2DFCA', emoji: '🥛' },
-  'fruit': { bg: '#FCE4EC', text: '#8E2040', border: '#F8BBD0', emoji: '🍓' },
-  'egg': { bg: '#FFF8E1', text: '#6D4C10', border: '#FFE082', emoji: '🥚' },
-  'chocolate_cocoa': { bg: '#EFEBE9', text: '#4E342E', border: '#D7CCC8', emoji: '🍫' },
-  'seasoning': { bg: '#F3E5F5', text: '#6A1B9A', border: '#CE93D8', emoji: '🧂' },
-  'other': { bg: '#E3F2FD', text: '#1565C0', border: '#90CAF9', emoji: '🧁' },
-  'cake': { bg: '#FFF3E0', text: '#8B5E3C', border: '#F2DCC8', emoji: '🎂' },
-  'bread': { bg: '#FFFDE7', text: '#7A6020', border: '#F5E6A3', emoji: '🥐' },
-  'pudding': { bg: '#E8F5E9', text: '#2E7D50', border: '#B2DFCA', emoji: '🍮' },
-  'cupcake': { bg: '#FCE4EC', text: '#8E2040', border: '#F8BBD0', emoji: '🧁' }
+  'flour':          { bg:'#FBEACB', text:'#7A5320', border:'#EFC987', solid:'#E0A53B', emoji:'🌾' },
+  'butter_fat':     { bg:'#FBF1BE', text:'#7A6512', border:'#EDD968', solid:'#E8BE12', emoji:'🧈' },
+  'milk_cream':     { bg:'#D2F0E2', text:'#1F6B4C', border:'#9CD9BD', solid:'#34B985', emoji:'🥛' },
+  'fruit':          { bg:'#FBD7E5', text:'#9C2552', border:'#F39CBE', solid:'#E84F8C', emoji:'🍓' },
+  'egg':            { bg:'#FCE8BC', text:'#7A5410', border:'#F2CF7E', solid:'#F2A93B', emoji:'🥚' },
+  'chocolate_cocoa':{ bg:'#E5D2C7', text:'#4A2E20', border:'#C2A189', solid:'#8D5A3C', emoji:'🍫' },
+  'seasoning':      { bg:'#E7D2F0', text:'#5E2B7E', border:'#C89CDD', solid:'#9B59B6', emoji:'🧂' },
+  'other':          { bg:'#D2E4F7', text:'#1C5187', border:'#9CC4E8', solid:'#4A90D9', emoji:'🧁' },
+  'cake':           { bg:'#FBEACB', text:'#7A5320', border:'#EFC987', solid:'#E0A53B', emoji:'🎂' },
+  'bread':          { bg:'#FBF1BE', text:'#7A6512', border:'#EDD968', solid:'#E8BE12', emoji:'🥐' },
+  'pudding':        { bg:'#D2F0E2', text:'#1F6B4C', border:'#9CD9BD', solid:'#34B985', emoji:'🍮' },
+  'cupcake':        { bg:'#FBD7E5', text:'#9C2552', border:'#F39CBE', solid:'#E84F8C', emoji:'🧁' },
+  'other_recipe':   { bg:'#D2E4F7', text:'#1C5187', border:'#9CC4E8', solid:'#4A90D9', emoji:'🧁' }
 };
+
+/* ===== Color helpers: derive a coherent palette from any single hex ===== */
+const AUTO_CAT_PALETTE = ['#E0A53B','#34B985','#E84F8C','#9B59B6','#4A90D9','#E8651E','#16A39B','#C0392B','#6C7AE0','#2E9E5B','#D98324','#8E44AD'];
+function _hexToRgb(hex) {
+  hex = String(hex || '').replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  const n = parseInt(hex || '888888', 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+function _rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
+}
+function _mix(hex, target, amt) {
+  const c = _hexToRgb(hex);
+  return _rgbToHex(c.r + (target.r - c.r) * amt, c.g + (target.g - c.g) * amt, c.b + (target.b - c.b) * amt);
+}
+const _WHITE = { r: 255, g: 255, b: 255 }, _BLACK = { r: 0, g: 0, b: 0 };
+function paletteFromHex(hex, emoji) {
+  return {
+    solid: hex,
+    bg: _mix(hex, _WHITE, 0.84),
+    border: _mix(hex, _WHITE, 0.52),
+    text: _mix(hex, _BLACK, 0.42),
+    emoji: emoji || '🏷️'
+  };
+}
+// Resolve a category object → {bg,text,border,solid,emoji}. Honors a user-chosen cat.color.
+function getCatColors(cat) {
+  if (cat && cat.color) return paletteFromHex(cat.color, cat.emoji);
+  const base = (cat && CATEGORY_COLORS[cat.name_en]) ? CATEGORY_COLORS[cat.name_en] : CATEGORY_COLORS['other'];
+  return { bg: base.bg, text: base.text, border: base.border, solid: base.solid || base.text, emoji: (cat && cat.emoji) || base.emoji };
+}
+// The effective solid hex currently used for a category (for prefilling a color picker)
+function catSolidHex(cat) { return getCatColors(cat).solid; }
+function nextAutoColor(existing) {
+  const used = (existing || []).map(c => c.color).filter(Boolean);
+  for (const c of AUTO_CAT_PALETTE) { if (!used.includes(c)) return c; }
+  return AUTO_CAT_PALETTE[(existing ? existing.length : 0) % AUTO_CAT_PALETTE.length];
+}
 
 /* ===================================================================
  *  MOCK DATA (first-time initialization)
@@ -2480,7 +2606,7 @@ function renderIngredients() {
   const chips = [{ id: 'all', name: 'ทั้งหมด', emoji: '' }, ...appState.ingredientCategories.map(c => ({ id: c.id, name: c.name_th, emoji: c.emoji }))];
   document.getElementById('ingFilterChips').innerHTML = chips.map(c => {
     const catDef = c.id === 'all' ? null : appState.ingredientCategories.find(ic => ic.id === c.id);
-    const colors = catDef ? CATEGORY_COLORS[catDef.name_en] : null;
+    const colors = catDef ? getCatColors(catDef) : null;
     const active = ingFilterCategory === c.id;
     return `<span class="chip ${active ? 'active' : ''}" style="${active && colors ? 'background:'+colors.bg+';color:'+colors.text+';font-weight:700' : ''}" onclick="ingFilterCategory='${c.id}';renderIngredients()">${c.emoji} ${c.name}</span>`;
   }).join('');
@@ -2498,7 +2624,7 @@ function renderIngredients() {
     </div>
     ${list.length > 0 ? list.map(ing => {
       const cat = appState.ingredientCategories.find(c => c.id === ing.category_id);
-      const colors = cat ? CATEGORY_COLORS[cat.name_en] : CATEGORY_COLORS['other'];
+      const colors = getCatColors(cat);
       const timeAgo = relativeTime(ing.last_price_update);
       const fullDate = formatThaiDateTime(ing.last_price_update);
       const isUpdated = ing.updated_at && ing.updated_at !== ing.created_at;
@@ -2518,6 +2644,7 @@ function renderIngredients() {
           <span class="tag" style="background:${colors.bg};color:${colors.text};border:1px solid ${colors.border}">${cat ? cat.name_th : 'อื่นๆ'}</span>
         </div>
         <div class="ing-row-name">${escHtml(ing.name)}</div>
+        ${ing.purchase_source ? `<div style="font-size:11px;color:var(--color-text-muted);margin-top:1px">🛒 ${escHtml(ing.purchase_source)}</div>` : ''}
         <div class="ing-row-detail">
           <span class="ing-row-price">฿${ing.price_per_unit.toFixed(2)} / ${ing.unit}</span>
           <span style="font-size:11px;color:var(--color-text-muted)">ต้นทุน: ฿${costPerGram.toFixed(6)}/กรัม</span>
@@ -2565,6 +2692,9 @@ function escHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+function escAttr(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 /* ===================================================================
@@ -2625,26 +2755,31 @@ function openIngredientModal(ingId) {
     const ing = appState.ingredients.find(i => i.id === ingId);
     if (ing) {
       document.getElementById('ingFormName').value = ing.name;
+      document.getElementById('ingFormSource').value = ing.purchase_source || '';
       document.getElementById('ingFormCategory').value = ing.category_id;
-      document.getElementById('ingFormPrice').value = ing.price_per_unit;
       document.getElementById('ingFormUnit').value = ing.unit;
-      // Package fields: reconstruct from ingredient data
-      const refUnitGrams = UNIT_GRAMS_MAP[ing.unit] || 1000;
-      const actualPackGrams = ing.unit_grams || refUnitGrams;
-      const packRatio = actualPackGrams / refUnitGrams;
-      if (packRatio > 0.99 && packRatio < 1.01) {
-        document.getElementById('ingFormPackQty').value = '1';
-        document.getElementById('ingFormPackUnit').value = refUnitGrams >= 1000 ? 'กก.' : (refUnitGrams >= 1 ? 'กรัม' : 'มล.');
-      } else if (actualPackGrams >= 1000) {
-        document.getElementById('ingFormPackQty').value = (actualPackGrams / 1000).toFixed(2).replace(/\.?0+$/, '');
-        document.getElementById('ingFormPackUnit').value = 'กก.';
+      if (ing.pack_qty && ing.pack_unit) {
+        // Preferred: restore the exact package the user entered
+        document.getElementById('ingFormPackQty').value = ing.pack_qty;
+        document.getElementById('ingFormPackUnit').value = ing.pack_unit;
+        document.getElementById('ingFormPrice').value = (ing.pack_price != null ? ing.pack_price : ing.price_per_unit);
       } else {
-        document.getElementById('ingFormPackQty').value = actualPackGrams;
-        document.getElementById('ingFormPackUnit').value = 'กรัม';
+        // Fallback: reconstruct package from stored grams (legacy / demo data)
+        document.getElementById('ingFormPrice').value = ing.price_per_unit;
+        const refUnitGrams = UNIT_GRAMS_MAP[ing.unit] || 1000;
+        const actualPackGrams = ing.unit_grams || refUnitGrams;
+        if (actualPackGrams >= 1000) {
+          document.getElementById('ingFormPackQty').value = (actualPackGrams / 1000).toFixed(2).replace(/\.?0+$/, '');
+          document.getElementById('ingFormPackUnit').value = 'กก.';
+        } else {
+          document.getElementById('ingFormPackQty').value = actualPackGrams;
+          document.getElementById('ingFormPackUnit').value = 'กรัม';
+        }
       }
     }
   } else {
     document.getElementById('ingFormName').value = '';
+    document.getElementById('ingFormSource').value = '';
     document.getElementById('ingFormCategory').value = appState.ingredientCategories[0]?.id || '';
     document.getElementById('ingFormPrice').value = '';
     document.getElementById('ingFormUnit').value = 'กก.';
@@ -2660,6 +2795,7 @@ function closeIngredientModal() {
   document.getElementById('ingredientModal').classList.remove('open');
   editingIngredientId = null;
   document.getElementById('ingFormName').value = '';
+  document.getElementById('ingFormSource').value = '';
   document.getElementById('ingFormPrice').value = '';
   document.getElementById('ingFormPackQty').value = '1';
   document.getElementById('ingFormPackUnit').value = 'กก.';
@@ -2764,41 +2900,41 @@ function saveIngredient() {
   if (!valid) return;
 
   const now = new Date().toISOString();
-  const roundedPrice = round2(price);
+  const roundedPrice = round2(price);          // total package price (ราคาต่อแพ็คเกจ)
 
-  // === UNIT CONVERSION: Package → normalized price_per_unit (PRD §6.7) ===
-  const effectiveTotalGrams = getEffectiveTotalGrams();
+  // === UNIT CONVERSION (corrected) ===
+  // Total grams in the package = packQty × grams-per-pack-unit (กก.→1000, กรัม→1, ลิตร→1000, มล.→1).
+  // cost_per_gram = total package price ÷ total grams (FULL precision — no rounding per PRD §6.7).
+  // price_per_unit is expressed per chosen reference unit = cost_per_gram × refUnitGrams.
+  // Example: 25 กก. (= 25,000 ก.) @ ฿1,980 → cost/gram = 1980 / 25000 = ฿0.0792/ก.
   const density = 1.0;
-
-  // Per PRD schema: price_per_unit = ราคาต่อ 1 หน่วยอ้างอิง (e.g. ฿79.20/กก.)
-  //                  unit_grams = กี่กรัมต่อ 1 หน่วยอ้างอิง (e.g. 1000 for กก.)
-  // Example: ซื้อ 25kg ราคา 1,980 THB → price_per_unit = 1980/25 = 79.20 THB/kg, unit_grams = 1000
-  const packQtySave = parseFloat((document.getElementById('ingFormPackQty').value || '1').replace(/[^0-9.]/g, '')) || 1;
-  const normalizedPricePerUnit = packQtySave > 0 ? roundedPrice / packQtySave : roundedPrice;
-
-  // cost_per_gram (FULL precision, 6 decimals — no rounding per PRD §6.7)
-  const costPerGram = refUnitGrams > 0 ? normalizedPricePerUnit / refUnitGrams : 0;
-
   const packQty = parseFloat((document.getElementById('ingFormPackQty').value || '1').replace(/[^0-9.]/g, '')) || 1;
   const packUnit = document.getElementById('ingFormPackUnit').value;
-  const packUnitLabel = { 'kg': 'กก.', 'g': 'กรัม', 'L': 'ลิตร', 'ml': 'มล.' }[packUnit] || packUnit;
+  const totalPackGrams = getEffectiveTotalGrams();
+  const costPerGram = totalPackGrams > 0 ? price / totalPackGrams : 0;
+  const normalizedPricePerUnit = costPerGram * refUnitGrams;   // price per 1 reference unit
+  const purchaseSource = document.getElementById('ingFormSource').value.trim();
 
   if (editingIngredientId) {
     const ing = appState.ingredients.find(i => i.id === editingIngredientId);
     if (ing) {
       const prevPricePerUnit = ing.price_per_unit;
       const prevActualUnitGrams = ing.unit_grams;
-      const prevCostPerGram = prevActualUnitGrams > 0 ? prevPricePerUnit * refUnitGrams / prevActualUnitGrams : 0;
+      const prevCostPerGram = prevActualUnitGrams > 0 ? prevPricePerUnit / prevActualUnitGrams : 0;
 
       ing.name = name;
       ing.category_id = catId;
-      ing.price_per_unit = round2(normalizedPricePerUnit); // price per 1 reference unit (PRD schema)
+      ing.purchase_source = purchaseSource;
+      ing.price_per_unit = normalizedPricePerUnit; // price per 1 reference unit (full precision)
       ing.unit = refUnit;
       ing.unit_grams = refUnitGrams;
       ing.density_g_per_ml = density;
+      ing.pack_qty = packQty;
+      ing.pack_unit = packUnit;
+      ing.pack_price = roundedPrice;
       ing.updated_at = now;
 
-      const priceChanged = Math.abs(round2(normalizedPricePerUnit) - prevPricePerUnit) > 0.001;
+      const priceChanged = Math.abs(normalizedPricePerUnit - prevPricePerUnit) > 1e-9;
 
       if (priceChanged) {
         ing.previous_price = prevPricePerUnit;
@@ -2814,15 +2950,17 @@ function saveIngredient() {
     const newIng = {
       id: 'ing_' + Date.now().toString(36),
       name, category_id: catId,
-      price_per_unit: round2(normalizedPricePerUnit),
+      purchase_source: purchaseSource,
+      price_per_unit: normalizedPricePerUnit,
       unit: refUnit, unit_grams: refUnitGrams,
       density_g_per_ml: density, stock_quantity: 0, stock_unit: refUnit,
+      pack_qty: packQty, pack_unit: packUnit, pack_price: roundedPrice,
       source: 'manual', is_active: true,
       last_price_update: now, previous_price: null,
       created_at: now, updated_at: now
     };
     appState.ingredients.push(newIng);
-    showToast('success', `✅ เพิ่ม '${escHtml(name)}' ในคลังแล้ว — ฿${roundedPrice.toFixed(2)}/${packQtySave} ${packUnit} → ฿${normalizedPricePerUnit.toFixed(2)}/${refUnit} (ต้นทุน ฿${costPerGram.toFixed(6)}/กรัม)`, 5000);
+    showToast('success', `✅ เพิ่ม '${escHtml(name)}' ในคลังแล้ว — ฿${roundedPrice.toFixed(2)} ต่อ ${packQty} ${packUnit} (ต้นทุน ฿${costPerGram.toFixed(4)}/กรัม)`, 5000);
   }
   persistState();
   closeIngredientModal();
@@ -2991,7 +3129,7 @@ function renderRecipes() {
   const chips = [{ id: 'all', name: 'ทั้งหมด', emoji: '📋' }, ...appState.recipeCategories.map(c => ({ id: c.id, name: c.name_th, emoji: c.emoji }))];
   document.getElementById('recipeFilterChips').innerHTML = chips.map(c => {
     const catDef = c.id === 'all' ? null : appState.recipeCategories.find(rc => rc.id === c.id);
-    const colors = catDef ? CATEGORY_COLORS[catDef.name_en] : null;
+    const colors = catDef ? getCatColors(catDef) : null;
     const active = recipeFilterCategory === c.id;
     return `<span class="chip ${active ? 'active' : ''}" style="${active && colors ? 'background:'+colors.bg+';color:'+colors.text+';font-weight:700' : ''}" onclick="recipeFilterCategory='${c.id}';renderRecipes()">${c.emoji} ${c.name}</span>`;
   }).join('');
@@ -3004,7 +3142,7 @@ function renderRecipes() {
     </div>
     ${list.length > 0 ? list.map(r => {
       const cat = appState.recipeCategories.find(c => c.id === r.category_id);
-      const colors = cat ? CATEGORY_COLORS[cat.name_en] : null;
+      const colors = cat ? getCatColors(cat) : null;
       const emoji = cat ? cat.emoji : '🧁';
       const alertBadge = r.has_alerts ? buildAlertBadgeHtml(r) : '';
       const isIncomplete = !r.is_complete;
@@ -3099,6 +3237,7 @@ function renderRecipeDetail(recipeId) {
   renderRecipeResult(recipe);
   renderDonutChart(recipe);
   renderRecipeIngredients(recipe);
+  updatePctBahtDisplays(recipe);
 
   // Wire up drag-and-drop after DOM update
   setTimeout(() => setupDragAndDrop(recipe), 50);
@@ -3145,88 +3284,188 @@ function triggerNumFlash() {
   });
 }
 
+// Show the baht-per-piece value each % (Overhead / VAT / Labor) represents.
+function updatePctBahtDisplays(recipe) {
+  if (!recipe) return;
+  const calc = calculateAll(recipe.ingredients, recipe.pieces_per_batch, recipe.selling_price, recipe.overhead_percent, recipe.vat_percent, recipe.labor_percent);
+  const fcpp = calc.foodCostPerPiece || 0;
+  const pctOf = (id) => (parseFloat(document.getElementById(id).value) || 0) / 100 * fcpp;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = fcpp > 0 ? `≈ ฿${v.toFixed(2)} / ชิ้น` : ''; };
+  set('rcpOverheadBaht', pctOf('rcpOverhead'));
+  set('rcpVatBaht', pctOf('rcpVat'));
+  set('rcpLaborBaht', pctOf('rcpLabor'));
+}
+
 /* ===================================================================
- *  DONUT CHART SVG (PRD §6.4)
+ *  DONUT CHART SVG (PRD §6.4) — animated, with ingredient-breakdown tooltip
  * =================================================================== */
+let _donutAnim = { raf: null, prevByKey: {} };
+let _donutTipData = {};
+const DONUT_CX = 120, DONUT_CY = 120, DONUT_RO = 102, DONUT_RI = 64, DONUT_START = -0.012;
+
+function donutSlicePath(startAngle, endAngle) {
+  const cx = DONUT_CX, cy = DONUT_CY, rO = DONUT_RO, rI = DONUT_RI;
+  const x1o = cx + rO * Math.cos(startAngle), y1o = cy + rO * Math.sin(startAngle);
+  const x2o = cx + rO * Math.cos(endAngle),   y2o = cy + rO * Math.sin(endAngle);
+  const x1i = cx + rI * Math.cos(endAngle),   y1i = cy + rI * Math.sin(endAngle);
+  const x2i = cx + rI * Math.cos(startAngle), y2i = cy + rI * Math.sin(startAngle);
+  const largeArc = (endAngle - startAngle) > Math.PI ? 1 : 0;
+  return [
+    `M ${x1o.toFixed(2)} ${y1o.toFixed(2)}`,
+    `A ${rO} ${rO} 0 ${largeArc} 1 ${x2o.toFixed(2)} ${y2o.toFixed(2)}`,
+    `L ${x1i.toFixed(2)} ${y1i.toFixed(2)}`,
+    `A ${rI} ${rI} 0 ${largeArc} 0 ${x2i.toFixed(2)} ${y2i.toFixed(2)}`,
+    'Z'
+  ].join(' ');
+}
+
 function renderDonutChart(recipe) {
+  // Fresh intro animation when opening/switching recipes; smooth morph within the same recipe.
+  if (_donutAnim.recipeId !== recipe.id) { _donutAnim.prevByKey = {}; _donutAnim.recipeId = recipe.id; }
   const calc = calculateAll(recipe.ingredients, recipe.pieces_per_batch, recipe.selling_price, recipe.overhead_percent, recipe.vat_percent, recipe.labor_percent);
   const ingredients = recipe.ingredients || [];
 
-  // Aggregate costs by category
+  // Aggregate costs by category, keeping each category's ingredient list
   const byCategory = {};
   ingredients.forEach(ri => {
     const cat = appState.ingredientCategories.find(c => c.id === ri.category_id);
     const key = cat ? cat.name_en : 'other';
-    if (!byCategory[key]) byCategory[key] = { total: 0, name_th: cat ? cat.name_th : 'อื่นๆ', emoji: cat ? cat.emoji : '🧁' };
-    byCategory[key].total += (ri.total_cost || calcIngredientCost(ri));
+    if (!byCategory[key]) byCategory[key] = { total: 0, name_th: cat ? cat.name_th : 'อื่นๆ', emoji: cat ? cat.emoji : '🧁', color: cat ? cat.color : null, items: [] };
+    const c = (ri.total_cost || calcIngredientCost(ri));
+    byCategory[key].total += c;
+    byCategory[key].items.push({ name: ri.name, cost: c });
   });
 
   const totalFoodCost = ingredients.reduce((sum, ri) => sum + (ri.total_cost || calcIngredientCost(ri)), 0);
   const entries = Object.entries(byCategory).sort((a, b) => b[1].total - a[1].total);
+  const container = document.getElementById('donutSvgContainer');
 
   if (entries.length === 0 || totalFoodCost <= 0) {
-    document.getElementById('donutSvgContainer').innerHTML =
-      '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--color-text-muted)">ยังไม่มีส่วนผสม</div>';
+    if (_donutAnim.raf) { cancelAnimationFrame(_donutAnim.raf); _donutAnim.raf = null; }
+    _donutAnim.prevByKey = {};
+    _donutTipData = {};
+    hideDonutTip();
+    container.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--color-text-muted)">ยังไม่มีส่วนผสม</div>';
     document.getElementById('donutLegend').innerHTML = '';
     return;
   }
 
-  // Build SVG donut
-  const cx = 120, cy = 120, rOuter = 100, rInner = 65;
-  const circumference = 2 * Math.PI * ((rOuter + rInner) / 2);
+  // Target cumulative angles per slice
+  let off = DONUT_START;
+  const target = entries.map(([key, data]) => {
+    const f = data.total / totalFoodCost;
+    const s = off; off += f * 2 * Math.PI;
+    return { key, data, start: s, end: off, colors: getCatColors({ name_en: key, color: data.color, emoji: data.emoji }) };
+  });
 
-  let angleOffset = 0;
-  const slicesHtml = entries.map(([key, data]) => {
-    const pct = data.total / totalFoodCost;
-    const sweepAngle = pct * 2 * Math.PI;
-    const startAngle = angleOffset;
-    const endAngle = angleOffset + sweepAngle;
-    angleOffset = endAngle;
+  // Build tooltip data (ingredient breakdown per category)
+  _donutTipData = {};
+  target.forEach(t => {
+    _donutTipData[t.key] = {
+      title: `${t.data.emoji} ${t.data.name_th}`,
+      total: t.data.total,
+      pct: totalFoodCost > 0 ? (t.data.total / totalFoodCost * 100) : 0,
+      rows: t.data.items.slice().sort((a, b) => b.cost - a.cost).map(it => ({
+        name: it.name, cost: it.cost, pct: totalFoodCost > 0 ? (it.cost / totalFoodCost * 100) : 0
+      }))
+    };
+  });
 
-    const x1o = cx + rOuter * Math.cos(startAngle);
-    const y1o = cy + rOuter * Math.sin(startAngle);
-    const x2o = cx + rOuter * Math.cos(endAngle);
-    const y2o = cy + rOuter * Math.sin(endAngle);
-    const x1i = cx + rInner * Math.cos(endAngle);
-    const y1i = cy + rInner * Math.sin(endAngle);
-    const x2i = cx + rInner * Math.cos(startAngle);
-    const y2i = cy + rInner * Math.sin(startAngle);
+  // "From" angles = where each slice is currently displayed (for smooth morph)
+  const fromBy = _donutAnim.prevByKey || {};
+  const fromArr = target.map(t => fromBy[t.key] ? fromBy[t.key] : { start: t.start, end: t.start });
 
-    const largeArc = sweepAngle > Math.PI ? 1 : 0;
-    const colors = CATEGORY_COLORS[key] || CATEGORY_COLORS['other'];
-
-    const pathD = [
-      `M ${x1o.toFixed(2)} ${y1o.toFixed(2)}`,
-      `A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${x2o.toFixed(2)} ${y2o.toFixed(2)}`,
-      `L ${x1i.toFixed(2)} ${y1i.toFixed(2)}`,
-      `A ${rInner} ${rInner} 0 ${largeArc} 0 ${x2i.toFixed(2)} ${y2i.toFixed(2)}`,
-      'Z'
-    ].join(' ');
-
-    return `<path class="donut-slice" d="${pathD}" fill="${colors.bg}" stroke="${colors.border}" stroke-width="1.5" data-cat="${key}" title="${data.name_th}: ฿${data.total.toFixed(2)} (${(pct*100).toFixed(1)}%)" />`;
+  // Render slices at their "from" geometry, then animate to target
+  const svgPaths = target.map((t, i) => {
+    const f = fromArr[i];
+    return `<path class="donut-slice" data-cat="${t.key}" d="${donutSlicePath(f.start, f.end)}" fill="${t.colors.solid}" stroke="var(--color-bg-elevated)" stroke-width="3" />`;
   }).join('');
 
-  document.getElementById('donutSvgContainer').innerHTML = `
-    <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
-      ${slicesHtml}
-    </svg>
+  container.innerHTML = `
+    <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">${svgPaths}</svg>
     <div class="donut-center-overlay">
       <div class="dc-value">${calc.foodCostPercent.toFixed(1)}%</div>
       <div class="dc-label">Food Cost</div>
     </div>`;
 
-  // Legend
-  document.getElementById('donutLegend').innerHTML = entries.map(([key, data]) => {
-    const pct = (data.total / totalFoodCost) * 100;
-    const colors = CATEGORY_COLORS[key] || CATEGORY_COLORS['other'];
+  const pathEls = Array.from(container.querySelectorAll('.donut-slice'));
+  pathEls.forEach(el => {
+    const key = el.dataset.cat;
+    el.addEventListener('mouseenter', (e) => showDonutTip(key, e));
+    el.addEventListener('mousemove', moveDonutTip);
+    el.addEventListener('mouseleave', hideDonutTip);
+    el.addEventListener('click', () => scrollToIngredientCategory(key));
+  });
+
+  // Animate from → target (rAF tween of slice angles)
+  if (_donutAnim.raf) { cancelAnimationFrame(_donutAnim.raf); _donutAnim.raf = null; }
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const dur = reduceMotion ? 0 : 480;
+  const ease = (x) => 1 - Math.pow(1 - x, 3);
+  const t0 = performance.now();
+  function frame(now) {
+    const e = dur > 0 ? Math.min(1, (now - t0) / dur) : 1;
+    const k = ease(e);
+    const cur = {};
+    target.forEach((t, i) => {
+      const f = fromArr[i];
+      const s = f.start + (t.start - f.start) * k;
+      const en = f.end + (t.end - f.end) * k;
+      if (pathEls[i]) pathEls[i].setAttribute('d', donutSlicePath(s, en));
+      cur[t.key] = { start: s, end: en };
+    });
+    _donutAnim.prevByKey = cur;
+    if (e < 1) { _donutAnim.raf = requestAnimationFrame(frame); }
+    else {
+      _donutAnim.raf = null;
+      const fin = {}; target.forEach(t => { fin[t.key] = { start: t.start, end: t.end }; });
+      _donutAnim.prevByKey = fin;
+    }
+  }
+  _donutAnim.raf = requestAnimationFrame(frame);
+
+  // Legend (hover shows the same breakdown tooltip)
+  document.getElementById('donutLegend').innerHTML = target.map(t => {
+    const pct = (t.data.total / totalFoodCost) * 100;
     return `
-    <div class="donut-legend-item" data-cat="${key}" onclick="scrollToIngredientCategory('${key}')" title="คลิกเพื่อดูส่วนผสมประเภทนี้">
-      <span class="donut-legend-swatch" style="background:${colors.bg};border:1px solid ${colors.border}"></span>
-      <span class="donut-legend-name">${data.emoji} ${data.name_th}</span>
-      <span class="donut-legend-cost">฿${data.total.toFixed(2)}</span>
+    <div class="donut-legend-item" data-cat="${t.key}" onclick="scrollToIngredientCategory('${t.key}')" onmouseenter="showDonutTip('${t.key}',event)" onmousemove="moveDonutTip(event)" onmouseleave="hideDonutTip()" title="คลิกเพื่อดูส่วนผสมประเภทนี้">
+      <span class="donut-legend-swatch" style="background:${t.colors.solid}"></span>
+      <span class="donut-legend-name">${t.data.emoji} ${t.data.name_th}</span>
+      <span class="donut-legend-cost">฿${t.data.total.toFixed(2)}</span>
       <span class="donut-legend-pct">${pct.toFixed(1)}%</span>
     </div>`;
   }).join('');
+}
+
+/* ===== Donut hover tooltip (ingredient breakdown) ===== */
+function _ensureDonutTip() {
+  let el = document.getElementById('donutTooltip');
+  if (!el) { el = document.createElement('div'); el.id = 'donutTooltip'; el.className = 'donut-tip'; document.body.appendChild(el); }
+  return el;
+}
+function showDonutTip(key, e) {
+  const d = _donutTipData[key];
+  if (!d) return;
+  const el = _ensureDonutTip();
+  el.innerHTML =
+    `<div class="donut-tip-title"><span>${escHtml(d.title)}</span><span class="tt-sum">฿${d.total.toFixed(2)} · ${d.pct.toFixed(1)}%</span></div>` +
+    d.rows.map(r => `<div class="donut-tip-row"><span class="nm">${escHtml(r.name)}</span><span class="ct">฿${r.cost.toFixed(2)} · ${r.pct.toFixed(1)}%</span></div>`).join('');
+  el.classList.add('show');
+  moveDonutTip(e);
+}
+function moveDonutTip(e) {
+  const el = document.getElementById('donutTooltip');
+  if (!el || !el.classList.contains('show')) return;
+  const pad = 14, w = el.offsetWidth, h = el.offsetHeight;
+  let x = e.clientX + pad, y = e.clientY + pad;
+  if (x + w + 8 > window.innerWidth) x = e.clientX - w - pad;
+  if (y + h + 8 > window.innerHeight) y = e.clientY - h - pad;
+  el.style.left = Math.max(8, x) + 'px';
+  el.style.top = Math.max(8, y) + 'px';
+}
+function hideDonutTip() {
+  const el = document.getElementById('donutTooltip');
+  if (el) el.classList.remove('show');
 }
 
 function scrollToIngredientCategory(catKey) {
@@ -3274,7 +3513,7 @@ function renderRecipeIngredients(recipe) {
 
   const rows = list.map((ri, idx) => {
     const cat = appState.ingredientCategories.find(c => c.id === ri.category_id);
-    const colors = cat ? CATEGORY_COLORS[cat.name_en] : CATEGORY_COLORS['other'];
+    const colors = getCatColors(cat);
     const cost = ri.total_cost || calcIngredientCost(ri);
     return `
     <div class="ri-row ingredient-row-draggable" draggable="true" data-idx="${idx}" data-cat-key="${cat ? cat.name_en : 'other'}" id="dragRow-${idx}">
@@ -3417,6 +3656,7 @@ function onRecipeFieldChange() {
   // Update stepper buttons
   document.getElementById('stepperDown').disabled = recipe.pieces_per_batch <= 1;
   document.getElementById('stepperUp').disabled = recipe.pieces_per_batch >= 9999;
+  updatePctBahtDisplays(recipe);
 }
 
 function stepperChange(delta) {
@@ -3468,6 +3708,7 @@ function recalculateRecipe() {
   renderRecipeResult(recipe);
   renderDonutChart(recipe);
   renderRecipeIngredients(recipe);
+  updatePctBahtDisplays(recipe);
   persistState();
   showToast('success', 'คำนวณใหม่เรียบร้อยแล้ว', 2000);
 }
@@ -3631,25 +3872,44 @@ function saveStoreName() {
  * =================================================================== */
 function renderIngCategoryManager() {
   document.getElementById('ingCategoryManager').innerHTML = appState.ingredientCategories.map(c => {
-    const colors = CATEGORY_COLORS[c.name_en] || CATEGORY_COLORS['other'];
-    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--color-border)">
-      <span style="font-size:18px">${c.emoji}</span><span style="flex:1">${c.name_th} (${c.name_en})</span>
-      <button class="btn btn-ghost btn-sm" onclick="deleteIngredientCategory('${c.id}')" style="color:var(--color-accent-red)">ลบ</button></div>`;
+    const hex = catSolidHex(c);
+    return `<div class="cat-row" data-id="${c.id}">
+      <input class="input-field cat-emoji" id="ingCatEmoji_${c.id}" value="${escAttr(c.emoji)}" maxlength="2" aria-label="อิโมจิ">
+      <input type="color" class="cat-color" id="ingCatColor_${c.id}" value="${hex}" title="เลือกสีที่จะแสดงในกราฟโดนัท" aria-label="สี">
+      <input class="input-field cat-name" id="ingCatName_${c.id}" value="${escAttr(c.name_th)}" style="font-family:var(--font-thai)" aria-label="ชื่อหมวดหมู่">
+      <span class="cat-row-actions">
+        <button class="btn btn-primary btn-sm" onclick="updateIngredientCategory('${c.id}')" title="บันทึก">💾</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteIngredientCategory('${c.id}')" style="color:var(--color-accent-red)" title="ลบ">🗑</button>
+      </span>
+    </div>`;
   }).join('') || '<div style="color:var(--color-text-muted)">ยังไม่มีหมวดหมู่</div>';
 }
 function addIngredientCategory() {
   const name = document.getElementById('newIngCatName').value.trim();
   const emoji = document.getElementById('newIngCatEmoji').value.trim() || '🧁';
   if (!name) { showToast('error', 'กรุณากรอกชื่อหมวดหมู่'); return; }
-  const nameEn = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_ก-๙]/g, '');
+  const nameEn = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_ก-๙]/g, '') || ('custom_' + Date.now().toString(36));
   appState.ingredientCategories.push({
-    id: 'cat_ing_' + Date.now().toString(36), name_th: name, name_en: nameEn || 'custom',
-    scope: 'ingredient', emoji, sort_order: appState.ingredientCategories.length + 1
+    id: 'cat_ing_' + Date.now().toString(36), name_th: name, name_en: nameEn,
+    scope: 'ingredient', emoji, color: nextAutoColor(appState.ingredientCategories),
+    sort_order: appState.ingredientCategories.length + 1
   });
-  if (!CATEGORY_COLORS[nameEn]) CATEGORY_COLORS[nameEn] = { bg: '#F5F0E8', text: '#7A6055', border: '#E8DDD0', emoji };
   persistState(); renderIngCategoryManager(); renderIngredients();
   document.getElementById('newIngCatName').value = ''; document.getElementById('newIngCatEmoji').value = '';
   showToast('success', `เพิ่มหมวดหมู่ "${name}" แล้ว`);
+}
+function updateIngredientCategory(catId) {
+  const cat = appState.ingredientCategories.find(c => c.id === catId);
+  if (!cat) return;
+  const name = document.getElementById('ingCatName_' + catId).value.trim();
+  const emoji = document.getElementById('ingCatEmoji_' + catId).value.trim() || cat.emoji || '🧁';
+  const color = document.getElementById('ingCatColor_' + catId).value;
+  if (!name) { showToast('error', 'ชื่อหมวดหมู่ห้ามว่าง'); return; }
+  cat.name_th = name; cat.emoji = emoji; cat.color = color;
+  persistState();
+  renderIngCategoryManager(); renderIngredients();
+  if (currentRecipeId) { const r = appState.recipes.find(x => x.id === currentRecipeId); if (r) renderDonutChart(r); }
+  showToast('success', `บันทึกหมวดหมู่ "${name}" แล้ว`);
 }
 function deleteIngredientCategory(catId) {
   const used = appState.ingredients.filter(i => i.category_id === catId && i.is_active);
@@ -3660,25 +3920,42 @@ function deleteIngredientCategory(catId) {
 
 function renderRecipeCategoryManager() {
   document.getElementById('recipeCategoryManager').innerHTML = appState.recipeCategories.map(c => {
-    const colors = CATEGORY_COLORS[c.name_en] || {};
-    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--color-border)">
-      <span style="font-size:18px">${c.emoji}</span><span style="flex:1">${c.name_th}</span>
-      <button class="btn btn-ghost btn-sm" onclick="deleteRecipeCategory('${c.id}')" style="color:var(--color-accent-red)">ลบ</button></div>`;
+    const hex = catSolidHex(c);
+    return `<div class="cat-row" data-id="${c.id}">
+      <input class="input-field cat-emoji" id="recCatEmoji_${c.id}" value="${escAttr(c.emoji)}" maxlength="2" aria-label="อิโมจิ">
+      <input type="color" class="cat-color" id="recCatColor_${c.id}" value="${hex}" title="เลือกสีของหมวดหมู่" aria-label="สี">
+      <input class="input-field cat-name" id="recCatName_${c.id}" value="${escAttr(c.name_th)}" style="font-family:var(--font-thai)" aria-label="ชื่อหมวดหมู่">
+      <span class="cat-row-actions">
+        <button class="btn btn-primary btn-sm" onclick="updateRecipeCategory('${c.id}')" title="บันทึก">💾</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteRecipeCategory('${c.id}')" style="color:var(--color-accent-red)" title="ลบ">🗑</button>
+      </span>
+    </div>`;
   }).join('') || '<div style="color:var(--color-text-muted)">ยังไม่มีหมวดหมู่</div>';
 }
 function addRecipeCategory() {
   const name = document.getElementById('newRecCatName').value.trim();
   const emoji = document.getElementById('newRecCatEmoji').value.trim() || '🧁';
   if (!name) { showToast('error', 'กรุณากรอกชื่อหมวดหมู่'); return; }
-  const nameEn = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_ก-๙]/g, '');
+  const nameEn = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_ก-๙]/g, '') || ('custom_' + Date.now().toString(36));
   appState.recipeCategories.push({
-    id: 'cat_rec_' + Date.now().toString(36), name_th: name, name_en: nameEn || 'custom',
-    scope: 'recipe', emoji, sort_order: appState.recipeCategories.length + 1
+    id: 'cat_rec_' + Date.now().toString(36), name_th: name, name_en: nameEn,
+    scope: 'recipe', emoji, color: nextAutoColor(appState.recipeCategories),
+    sort_order: appState.recipeCategories.length + 1
   });
-  if (!CATEGORY_COLORS[nameEn]) CATEGORY_COLORS[nameEn] = { bg: '#F5F0E8', text: '#7A6055', border: '#E8DDD0', emoji };
   persistState(); renderRecipeCategoryManager(); renderRecipes();
   document.getElementById('newRecCatName').value = ''; document.getElementById('newRecCatEmoji').value = '';
   showToast('success', `เพิ่มหมวดหมู่ "${name}" แล้ว`);
+}
+function updateRecipeCategory(catId) {
+  const cat = appState.recipeCategories.find(c => c.id === catId);
+  if (!cat) return;
+  const name = document.getElementById('recCatName_' + catId).value.trim();
+  const emoji = document.getElementById('recCatEmoji_' + catId).value.trim() || cat.emoji || '🧁';
+  const color = document.getElementById('recCatColor_' + catId).value;
+  if (!name) { showToast('error', 'ชื่อหมวดหมู่ห้ามว่าง'); return; }
+  cat.name_th = name; cat.emoji = emoji; cat.color = color;
+  persistState(); renderRecipeCategoryManager(); renderRecipes();
+  showToast('success', `บันทึกหมวดหมู่ "${name}" แล้ว`);
 }
 function deleteRecipeCategory(catId) {
   const used = appState.recipes.filter(r => r.category_id === catId);
@@ -3787,13 +4064,13 @@ function renderAddToRecipeIngList() {
   document.getElementById('addToRecipeCatChips').innerHTML = chips.map(c => {
     const active = addToRecipeCatFilter === c.id;
     const catDef = c.id === 'all' ? null : appState.ingredientCategories.find(ic => ic.id === c.id);
-    const colors = catDef ? CATEGORY_COLORS[catDef.name_en] : null;
+    const colors = catDef ? getCatColors(catDef) : null;
     return `<span class="chip ${active ? 'active' : ''}" style="${active && colors ? 'background:'+colors.bg+';color:'+colors.text+';font-weight:700;font-size:11px' : 'font-size:11px'}" onclick="addToRecipeCatFilter='${c.id}';renderAddToRecipeIngList()">${c.emoji} ${c.name}</span>`;
   }).join('');
 
   document.getElementById('addToRecipeIngList').innerHTML = list.length > 0 ? list.map(ing => {
     const cat = appState.ingredientCategories.find(c => c.id === ing.category_id);
-    const colors = cat ? CATEGORY_COLORS[cat.name_en] : CATEGORY_COLORS['other'];
+    const colors = getCatColors(cat);
     const cpg = ing.unit_grams > 0 ? (ing.price_per_unit / (ing.unit_grams * (ing.density_g_per_ml || 1.0))) : 0;
     return `<div class="quick-add-item" data-ing-id="${ing.id}" onclick="selectAddToRecipeIngredient('${ing.id}')">
       <span style="font-size:18px">${colors ? colors.emoji : '🧁'}</span>
