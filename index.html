@@ -20,7 +20,6 @@
     appId: "1:345883383293:web:80e5baee94e32cdc523594",
     measurementId: "G-YP9VEW0K6M"
   };
-     
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -123,7 +122,7 @@ body {
 .page-content {
   flex: 1;
   padding: var(--space-lg);
-  max-width: 1400px;
+  max-width: 1120px;
   width: 100%;
   margin: 0 auto;
 }
@@ -928,9 +927,9 @@ body {
   gap: var(--space-sm);
   padding: 10px var(--space-md);
   border-bottom: 1px solid var(--color-border);
-  min-height: 72px;
+  min-height: 64px;
   transition: background 150ms ease;
-  cursor: default;
+  cursor: pointer;
 }
 .ing-row-wrapper:hover { background: var(--color-primary-xlight); }
 .ing-row-main {
@@ -972,26 +971,36 @@ body {
 .ing-row-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: 6px;
   flex-shrink: 0;
 }
 .btn-icon {
-  width: 44px; height: 44px;
-  display: flex;
+  width: 38px; height: 38px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-md);
-  border: none;
-  background: transparent;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
   cursor: pointer;
-  font-size: 18px;
-  color: var(--color-text-muted);
+  font-size: 16px;
+  color: var(--color-text-secondary);
   transition: all 150ms ease;
 }
+.btn-icon svg { display: block; }
+.btn-icon:hover { transform: translateY(-1px); }
+.btn-icon:active { transform: scale(0.9); }
 .btn-icon:focus-visible { outline: 3px solid var(--color-border-focus); outline-offset: 2px; }
-.btn-icon.edit:hover { color: var(--color-primary); background: var(--color-primary-xlight); }
-.btn-icon.delete { color: var(--color-text-muted); }
-.btn-icon.delete:hover { color: var(--color-accent-red); background: #FFF0EE; }
+.btn-icon.edit, .btn-icon.save { color: var(--color-primary); }
+.btn-icon.edit:hover, .btn-icon.save:hover {
+  background: var(--color-primary); color: #fff; border-color: var(--color-primary);
+  box-shadow: 0 4px 10px rgba(139,94,60,0.28);
+}
+.btn-icon.delete { color: var(--color-accent-red); }
+.btn-icon.delete:hover {
+  background: var(--color-accent-red); color: #fff; border-color: var(--color-accent-red);
+  box-shadow: 0 4px 10px rgba(192,57,43,0.25);
+}
 
 /* ========== CONFIRM DIALOG ENHANCED ========== */
 .confirm-warning-box {
@@ -1369,13 +1378,14 @@ textarea.sync-field { resize: vertical; min-height: 120px; line-height: 1.5; }
 /* ===== Category manager (editable rows) ===== */
 .cat-row {
   display: grid;
-  grid-template-columns: 46px 42px minmax(0, 1fr) auto;
+  grid-template-columns: 44px 42px minmax(160px, 460px) auto;
+  justify-content: start;
   gap: 8px;
   align-items: center;
-  padding: 8px 0;
+  padding: 7px 0;
   border-bottom: 1px solid var(--color-border);
 }
-.cat-row .cat-emoji { width: 46px; text-align: center; padding: 8px 2px; font-size: 16px; }
+.cat-row .cat-emoji { width: 44px; text-align: center; padding: 8px 2px; font-size: 16px; }
 .cat-row .cat-color {
   width: 42px; height: 42px; padding: 2px;
   border: 1px solid var(--color-border);
@@ -1384,10 +1394,11 @@ textarea.sync-field { resize: vertical; min-height: 120px; line-height: 1.5; }
   cursor: pointer;
 }
 .cat-row .cat-name { width: 100%; }
-.cat-row-actions { display: flex; gap: 4px; }
+.cat-row-actions { display: flex; gap: 6px; }
+.cat-add-row { margin-top: var(--space-md); display: flex; gap: var(--space-sm); max-width: 600px; }
+.cat-add-row .cat-add-name { flex: 1; min-width: 0; }
 @media (max-width: 560px) {
-  .cat-row { grid-template-columns: 46px 42px minmax(0, 1fr); }
-  .cat-row-actions { grid-column: 1 / -1; justify-content: flex-end; }
+  .cat-row { grid-template-columns: 44px 42px minmax(0, 1fr) auto; }
 }
 
 /* ===== Donut: dim sibling slices on hover (UI Spec §7.2) ===== */
@@ -1613,8 +1624,8 @@ textarea.sync-field { resize: vertical; min-height: 120px; line-height: 1.5; }
         <div class="section-card">
           <div class="section-header"><span class="section-title">📂 จัดการหมวดหมู่วัตถุดิบ</span></div>
           <div id="ingCategoryManager" style="display:flex;flex-direction:column;gap:var(--space-sm)"></div>
-          <div style="margin-top:var(--space-md);display:flex;gap:var(--space-sm)">
-            <input type="text" class="input-field" id="newIngCatName" placeholder="ชื่อหมวดหมู่ใหม่" style="font-family:var(--font-thai);flex:1">
+          <div class="cat-add-row">
+            <input type="text" class="input-field cat-add-name" id="newIngCatName" placeholder="ชื่อหมวดหมู่ใหม่" style="font-family:var(--font-thai)">
             <input type="text" class="input-field" id="newIngCatEmoji" placeholder="🧁" style="width:60px;text-align:center">
             <button class="btn btn-primary" onclick="addIngredientCategory()">+ เพิ่ม</button>
           </div>
@@ -1623,8 +1634,8 @@ textarea.sync-field { resize: vertical; min-height: 120px; line-height: 1.5; }
         <div class="section-card">
           <div class="section-header"><span class="section-title">📖 จัดการหมวดหมู่สูตรขนม</span></div>
           <div id="recipeCategoryManager" style="display:flex;flex-direction:column;gap:var(--space-sm)"></div>
-          <div style="margin-top:var(--space-md);display:flex;gap:var(--space-sm)">
-            <input type="text" class="input-field" id="newRecCatName" placeholder="ชื่อหมวดหมู่ใหม่" style="font-family:var(--font-thai);flex:1">
+          <div class="cat-add-row">
+            <input type="text" class="input-field cat-add-name" id="newRecCatName" placeholder="ชื่อหมวดหมู่ใหม่" style="font-family:var(--font-thai)">
             <input type="text" class="input-field" id="newRecCatEmoji" placeholder="🎂" style="width:60px;text-align:center">
             <button class="btn btn-primary" onclick="addRecipeCategory()">+ เพิ่ม</button>
           </div>
@@ -1918,6 +1929,13 @@ const DENSITY_MAP = {
 /* ===================================================================
  *  CATEGORY TAG COLORS (from PRD §1.5)
  * =================================================================== */
+/* Modern line icons (inherit currentColor → recolor on hover) */
+const ICON_EDIT = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+const ICON_TRASH = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+const ICON_SAVE = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>';
+const ICON_COPY = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const ICON_TRASH_SM = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+
 const CATEGORY_COLORS = {
   'flour':          { bg:'#FBEACB', text:'#7A5320', border:'#EFC987', solid:'#E0A53B', emoji:'🌾' },
   'butter_fat':     { bg:'#FBF1BE', text:'#7A6512', border:'#EDD968', solid:'#E8BE12', emoji:'🧈' },
@@ -2633,7 +2651,7 @@ function renderIngredients() {
       const displayFullDate = formatThaiDateTime(displayDate);
       const costPerGram = ing.unit_grams > 0 ? (ing.price_per_unit / (ing.unit_grams * (ing.density_g_per_ml || 1.0))) : 0;
       return `
-    <div class="ing-row-wrapper" data-ing-id="${ing.id}">
+    <div class="ing-row-wrapper" data-ing-id="${ing.id}" onclick="openIngredientModal('${ing.id}')" title="คลิกเพื่อแก้ไข">
       <span style="font-size:20px;min-width:28px;text-align:center;flex-shrink:0">${colors ? colors.emoji : '🧁'}</span>
       <div class="ing-row-main">
         <div class="ing-row-meta">
@@ -2651,8 +2669,8 @@ function renderIngredients() {
         </div>
       </div>
       <div class="ing-row-actions">
-        <button class="btn-icon edit" onclick="event.stopPropagation();openIngredientModal('${ing.id}')" aria-label="แก้ไขวัตถุดิบ ${escHtml(ing.name)}" title="แก้ไข">✏</button>
-        <button class="btn-icon delete" onclick="event.stopPropagation();confirmDeleteIngredient('${ing.id}')" aria-label="ลบวัตถุดิบ ${escHtml(ing.name)}" title="ลบ">🗑</button>
+        <button class="btn-icon edit" onclick="event.stopPropagation();openIngredientModal('${ing.id}')" aria-label="แก้ไขวัตถุดิบ ${escHtml(ing.name)}" title="แก้ไข">${ICON_EDIT}</button>
+        <button class="btn-icon delete" onclick="event.stopPropagation();confirmDeleteIngredient('${ing.id}')" aria-label="ลบวัตถุดิบ ${escHtml(ing.name)}" title="ลบ">${ICON_TRASH}</button>
       </div>
     </div>`;
     }).join('') : `<div style="padding:40px;text-align:center;color:var(--color-text-muted)">
@@ -3166,8 +3184,8 @@ function renderRecipes() {
           <span style="font-size:11px;color:var(--color-text-muted)">${relativeTime(r.last_viewed_at)}</span>
           <span style="flex:1"></span>
           <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openRecipeDetail('${r.id}')" style="font-size:12px">เปิด</button>
-          <button class="btn btn-ghost btn-sm" onclick="cloneRecipe('${r.id}',event)" style="font-size:12px" title="คัดลอกสูตร">📋</button>
-          <button class="btn btn-ghost btn-sm" onclick="deleteRecipe('${r.id}',event)" style="font-size:12px;color:var(--color-accent-red)" title="ลบสูตร">🗑</button>
+          <button class="btn btn-ghost btn-sm" onclick="cloneRecipe('${r.id}',event)" style="font-size:12px" title="คัดลอกสูตร">${ICON_COPY}</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteRecipe('${r.id}',event)" style="font-size:12px;color:var(--color-accent-red)" title="ลบสูตร">${ICON_TRASH_SM}</button>
         </div>
       </div>
     </div>`;
@@ -3524,7 +3542,7 @@ function renderRecipeIngredients(recipe) {
       <input type="text" inputmode="decimal" class="ri-c-qty ing-qty-input" value="${ri.quantity}" oninput="sanitizeNumberInput(this);onIngQtyChange('${recipe.id}',${idx},this.value)" onblur="recalculateRecipe()" onclick="event.stopPropagation()" aria-label="ปริมาณ ${escHtml(ri.name)}">
       <span class="ri-c-unit">${ri.unit}</span>
       <span class="ri-c-cost ing-cost" id="ingCost-${idx}">฿${cost.toFixed(2)}</span>
-      <button class="ri-c-del btn-icon delete" onclick="event.stopPropagation();removeIngredientFromRecipe('${recipe.id}',${idx})" aria-label="ลบส่วนผสม ${escHtml(ri.name)}" title="ลบ">🗑</button>
+      <button class="ri-c-del btn-icon delete" onclick="event.stopPropagation();removeIngredientFromRecipe('${recipe.id}',${idx})" aria-label="ลบส่วนผสม ${escHtml(ri.name)}" title="ลบ">${ICON_TRASH}</button>
     </div>`;
   }).join('');
 
@@ -3878,8 +3896,8 @@ function renderIngCategoryManager() {
       <input type="color" class="cat-color" id="ingCatColor_${c.id}" value="${hex}" title="เลือกสีที่จะแสดงในกราฟโดนัท" aria-label="สี">
       <input class="input-field cat-name" id="ingCatName_${c.id}" value="${escAttr(c.name_th)}" style="font-family:var(--font-thai)" aria-label="ชื่อหมวดหมู่">
       <span class="cat-row-actions">
-        <button class="btn btn-primary btn-sm" onclick="updateIngredientCategory('${c.id}')" title="บันทึก">💾</button>
-        <button class="btn btn-ghost btn-sm" onclick="deleteIngredientCategory('${c.id}')" style="color:var(--color-accent-red)" title="ลบ">🗑</button>
+        <button class="btn-icon save" onclick="updateIngredientCategory('${c.id}')" title="บันทึก" aria-label="บันทึกหมวดหมู่">${ICON_SAVE}</button>
+        <button class="btn-icon delete" onclick="deleteIngredientCategory('${c.id}')" title="ลบ" aria-label="ลบหมวดหมู่">${ICON_TRASH}</button>
       </span>
     </div>`;
   }).join('') || '<div style="color:var(--color-text-muted)">ยังไม่มีหมวดหมู่</div>';
@@ -3926,8 +3944,8 @@ function renderRecipeCategoryManager() {
       <input type="color" class="cat-color" id="recCatColor_${c.id}" value="${hex}" title="เลือกสีของหมวดหมู่" aria-label="สี">
       <input class="input-field cat-name" id="recCatName_${c.id}" value="${escAttr(c.name_th)}" style="font-family:var(--font-thai)" aria-label="ชื่อหมวดหมู่">
       <span class="cat-row-actions">
-        <button class="btn btn-primary btn-sm" onclick="updateRecipeCategory('${c.id}')" title="บันทึก">💾</button>
-        <button class="btn btn-ghost btn-sm" onclick="deleteRecipeCategory('${c.id}')" style="color:var(--color-accent-red)" title="ลบ">🗑</button>
+        <button class="btn-icon save" onclick="updateRecipeCategory('${c.id}')" title="บันทึก" aria-label="บันทึกหมวดหมู่">${ICON_SAVE}</button>
+        <button class="btn-icon delete" onclick="deleteRecipeCategory('${c.id}')" title="ลบ" aria-label="ลบหมวดหมู่">${ICON_TRASH}</button>
       </span>
     </div>`;
   }).join('') || '<div style="color:var(--color-text-muted)">ยังไม่มีหมวดหมู่</div>';
@@ -4149,6 +4167,7 @@ let syncConfig = loadSyncConfig();   // { auto, lastSynced }
 let syncUnsub = null;
 let syncBusy = false;
 let applyingRemote = false;
+let _lastAppliedTs = 0;   // dedupe remote snapshots so the same payload isn't applied twice
 let pendingAuthIntent = null;        // 'login' | 'signup' | null (session restore)
 
 function loadSyncConfig() {
@@ -4278,14 +4297,21 @@ async function pullFromCloud(silent) {
 function applyRemoteState(data) {
   if (!data || !data.state) return;
   applyingRemote = true;
+  // Detach the auto-push hook while applying remote data. (The boolean flag alone
+  // is not enough because the push is debounced and fires after the flag resets —
+  // that echo is what caused the endless ping-pong of notifications between devices.)
+  const savedHook = window.__onStatePersisted;
+  window.__onStatePersisted = null;
   appState = data.state;
   if (typeof data.storeName === 'string' && data.storeName) {
     storeName = data.storeName;
     try { localStorage.setItem('bakery_store_name', storeName); } catch (e) {}
     if (typeof updateStoreNameDisplay === 'function') updateStoreNameDisplay();
   }
-  persistState();              // hook is skipped while applyingRemote is true
+  persistState();              // saves locally; no push is scheduled (hook detached)
+  window.__onStatePersisted = savedHook;
   applyingRemote = false;
+  if (data.ts) _lastAppliedTs = data.ts;
   syncConfig.lastSynced = Date.now(); saveSyncConfig();
   syncRerender();
 }
@@ -4310,8 +4336,13 @@ function startAutoSync() {
   stopAutoSync();
   syncUnsub = window.__fb.onSnapshot(window.__fb.docRef(window.__fb.uid), function (snap) {
     if (!snap.exists()) return;
+    // Skip our own optimistic local write echo (fires before the server confirms)
+    if (snap.metadata && snap.metadata.hasPendingWrites) return;
     const data = snap.data();
-    if (data.device === getDeviceId()) return;     // ignore our own write echoed back
+    if (!data) return;
+    if (data.device === getDeviceId()) return;          // our own (server-confirmed) write — ignore
+    if (data.ts && data.ts === _lastAppliedTs) return;  // same payload already applied — ignore
+    _lastAppliedTs = data.ts || Date.now();
     applyRemoteState(data);
     showToast('info', 'ซิงค์ข้อมูลจากอุปกรณ์อื่นแล้ว', 2500);
   }, function (err) { console.error('snapshot error', err); });
