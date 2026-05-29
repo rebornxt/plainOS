@@ -1,0 +1,4176 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bakery BOH — Costing & Recipe Management</title>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- =====================================================================
+     FIREBASE CONFIG  ← วาง config ของโปรเจกต์คุณตรงนี้ (PASTE CONFIG HERE)
+     Firebase Console → Project settings → Your apps → Web (</>) → firebaseConfig
+     ===================================================================== -->
+<script>
+  window.FIREBASE_CONFIG = {
+    apiKey: "PASTE_API_KEY",
+    authDomain: "PASTE_PROJECT.firebaseapp.com",
+    projectId: "PASTE_PROJECT_ID",
+    storageBucket: "PASTE_PROJECT.appspot.com",
+    messagingSenderId: "PASTE_SENDER_ID",
+    appId: "PASTE_APP_ID"
+  };
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Mono:wght@400;500;600&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ========== DESIGN SYSTEM :: CSS VARIABLES ========== */
+:root {
+  --color-bg-base: #FAF7F2;
+  --color-bg-surface: #F5F0E8;
+  --color-bg-elevated: #FFFDF9;
+  --color-primary: #8B5E3C;
+  --color-primary-light: #C4885A;
+  --color-primary-xlight: #F2DCC8;
+  --color-accent-gold: #D4A843;
+  --color-accent-red: #C0392B;
+  --color-accent-green: #6B9E78;
+  --color-text-primary: #2C1810;
+  --color-text-secondary: #7A6055;
+  --color-text-muted: #B0A090;
+  --color-border: #E8DDD0;
+  --color-border-focus: #C4885A;
+  --color-shadow: rgba(44,24,16,0.10);
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+  --font-thai: 'Sarabun', sans-serif;
+  --font-display: 'DM Serif Display', serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --sidebar-width: 240px;
+  --header-height: 60px;
+  --bottom-tab-height: 64px;
+  --shadow-elevation-1: 0 1px 4px rgba(44,24,16,0.08);
+  --shadow-elevation-2: 0 4px 12px rgba(44,24,16,0.12);
+  --shadow-elevation-3: 0 8px 28px rgba(44,24,16,0.18);
+  --shadow-elevation-4: 0 16px 48px rgba(44,24,16,0.22);
+}
+
+/* ========== RESET & BASE ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font-thai);
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+.font-mono, .mono, .price, .number { font-family: var(--font-mono); }
+.font-display { font-family: var(--font-display); }
+
+/* ========== LAYOUT SHELL ========== */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+}
+.sidebar {
+  width: var(--sidebar-width);
+  min-height: 100vh;
+  background: var(--color-bg-elevated);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 50;
+  transition: transform 250ms ease, width 250ms ease;
+  flex-shrink: 0;
+}
+.main-area {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  transition: margin-left 250ms ease;
+}
+.header-bar {
+  height: var(--header-height);
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-lg);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  gap: var(--space-md);
+}
+.header-bar.scrolled {
+  box-shadow: var(--shadow-elevation-2);
+}
+.page-content {
+  flex: 1;
+  padding: var(--space-lg);
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ========== SIDEBAR ========== */
+.sidebar-logo {
+  padding: var(--space-md) var(--space-lg);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-primary);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--header-height);
+}
+.sidebar-nav { flex: 1; padding: var(--space-sm) 0; overflow-y: auto; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0 var(--space-lg);
+  height: 48px;
+  cursor: pointer;
+  transition: background 150ms ease, border 150ms ease;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  font-weight: 500;
+  border-left: 3px solid transparent;
+  user-select: none;
+}
+.nav-item:hover { background: rgba(139,94,60,0.06); }
+.nav-item.active {
+  background: var(--color-primary-xlight);
+  color: var(--color-primary);
+  border-left-color: var(--color-primary);
+  font-weight: 600;
+}
+.nav-item .nav-icon { font-size: 18px; width: 24px; text-align: center; }
+.sidebar-footer {
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-md) var(--space-lg);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* ========== BOTTOM TAB BAR (MOBILE) ========== */
+.bottom-tab-bar {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: var(--bottom-tab-height);
+  background: var(--color-bg-elevated);
+  border-top: 1px solid var(--color-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  transition: color 150ms ease;
+  user-select: none;
+  position: relative;
+}
+.tab-item .tab-icon { font-size: 22px; }
+.tab-item.active { color: var(--color-primary); font-weight: 700; }
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 8px;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+/* ========== PAGE CONTAINERS ========== */
+.page { display: none; animation: fadeSlideUp 300ms ease-out; }
+.page.active { display: block; }
+
+/* ========== KPI CARDS ========== */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+.kpi-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  min-height: 120px;
+  box-shadow: var(--shadow-elevation-1);
+  transition: box-shadow 200ms ease, transform 180ms ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.kpi-card:hover {
+  box-shadow: var(--shadow-elevation-2);
+  transform: translateY(-1px);
+}
+.kpi-card .kpi-label { font-size: 13px; color: var(--color-text-secondary); font-weight: 500; }
+.kpi-card .kpi-value { font-family: var(--font-display); font-size: 36px; color: var(--color-text-primary); line-height: 1.1; }
+.kpi-card .kpi-sub { font-size: 12px; color: var(--color-text-muted); margin-top: 4px; }
+.kpi-card.kpi-alert {
+  border: 2px solid rgba(192,57,43,0.4);
+  background: linear-gradient(135deg, #FFF5F5, #FAF7F2);
+}
+.kpi-card.kpi-alert .kpi-value { color: var(--color-accent-red); }
+.kpi-card.kpi-alert.pulse { animation: alertPulse 2.5s ease-in-out infinite; }
+
+/* ========== CARDS & PANELS ========== */
+.section-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  box-shadow: var(--shadow-elevation-1);
+}
+.section-card .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+.section-card .section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* ========== TABLE ========== */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.data-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--color-border);
+}
+.data-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+}
+.data-table tbody tr { cursor: pointer; transition: background 150ms ease; }
+.data-table tbody tr:hover { background: var(--color-primary-xlight); }
+
+/* ========== PROGRESS BAR (FC%) ========== */
+.fc-bar {
+  width: 80px; height: 6px;
+  border-radius: 3px;
+  background: var(--color-border);
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+.fc-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 400ms ease;
+}
+
+/* ========== BUTTONS ========== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  font-family: var(--font-thai);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: all 150ms ease;
+  min-height: 44px;
+  min-width: 44px;
+  user-select: none;
+  white-space: nowrap;
+}
+.btn:focus-visible { outline: 3px solid var(--color-border-focus); outline-offset: 2px; }
+.btn-primary { background: var(--color-primary); color: #fff; }
+.btn-primary:hover { background: var(--color-primary-light); }
+.btn-secondary { background: transparent; color: var(--color-text-secondary); border: 1px solid var(--color-border); }
+.btn-secondary:hover { background: var(--color-bg-surface); color: var(--color-primary); }
+.btn-danger { background: transparent; color: var(--color-accent-red); }
+.btn-danger:hover { background: #FFF0EE; }
+.btn-ghost { background: transparent; color: var(--color-text-muted); border: none; }
+.btn-ghost:hover { color: var(--color-primary); background: var(--color-primary-xlight); }
+.btn-sm { padding: 6px 12px; font-size: 12px; min-height: 36px; }
+.btn-lg { padding: 14px 28px; font-size: 16px; }
+
+/* ===== Press feedback (micro-interactions) ===== */
+.btn:active        { transform: scale(0.97); }
+.btn-icon:active   { transform: scale(0.92); }
+.chip:active       { transform: scale(0.96); }
+.stepper button:active { transform: scale(0.92); }
+.nav-item:active,
+.tab-item:active   { background: var(--color-primary-xlight); }
+.kpi-card:active,
+.recipe-card:active,
+.quick-add-item:active { transform: scale(0.99); }
+.data-table tbody tr:active,
+.alert-item:active { background: var(--color-primary-light); }
+/* keep transform changes smooth on elements that previously only eased other props */
+.btn, .btn-icon, .chip, .stepper button { transition: all 150ms ease; }
+
+/* ========== INPUTS ========== */
+.input-field {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  transition: border 150ms ease, box-shadow 150ms ease;
+}
+.input-field:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(196,136,90,0.2);
+}
+.input-field.error { border-color: var(--color-accent-red); }
+.input-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+.select-field {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  font-family: var(--font-thai);
+  font-size: 15px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23B0A090' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 40px;
+}
+.select-field:focus { outline: none; border-color: var(--color-border-focus); box-shadow: 0 0 0 3px rgba(196,136,90,0.2); }
+
+/* ========== SEARCH BAR ========== */
+.search-bar {
+  position: relative;
+}
+.search-bar input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px 0 44px;
+  font-family: var(--font-thai);
+  font-size: 15px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+.search-bar input:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(196,136,90,0.2);
+}
+.search-bar .search-icon {
+  position: absolute;
+  left: 14px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  font-size: 18px;
+  pointer-events: none;
+}
+
+/* ========== FILTER CHIPS ========== */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  user-select: none;
+}
+.chip.active { border-color: transparent; font-weight: 700; }
+.chip:hover:not(.active) { background: var(--color-bg-surface); }
+
+/* ========== TAG (Ingredient Category) ========== */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ========== MODAL ========== */
+.modal-overlay {
+  display: flex;                 /* always flex; visibility controls show/hide */
+  position: fixed;
+  inset: 0;
+  background: rgba(44,24,16,0.45);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 200ms ease, visibility 0ms linear 200ms;
+}
+.modal-overlay.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 200ms ease, visibility 0ms linear 0ms;
+}
+.modal {
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevation-3);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  opacity: 0;
+  transform: scale(0.96) translateY(8px);
+  transition: transform 240ms cubic-bezier(0.34, 1.4, 0.64, 1), opacity 200ms ease;
+}
+.modal-overlay.open .modal {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+.modal-header h3 { font-size: 18px; font-weight: 700; }
+.modal-body { padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md); }
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ========== TOAST ========== */
+.toast-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 380px;
+}
+.toast {
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-elevation-3);
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  animation: toastIn 250ms ease-out;
+  border-left: 4px solid var(--color-primary);
+  font-size: 14px;
+}
+.toast.success { border-left-color: var(--color-accent-green); }
+.toast.error { border-left-color: var(--color-accent-red); }
+.toast.warning { border-left-color: var(--color-accent-gold); }
+.toast.removing { animation: toastOut 200ms ease-in forwards; }
+.toast .toast-close { cursor: pointer; color: var(--color-text-muted); margin-left: auto; flex-shrink: 0; background: none; border: none; font-size: 16px; }
+.toast-icon {
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #fff;
+  background: var(--color-primary);
+}
+.toast.success .toast-icon { background: var(--color-accent-green); }
+.toast.error   .toast-icon { background: var(--color-accent-red); }
+.toast.warning .toast-icon { background: var(--color-accent-gold); color: var(--color-text-primary); }
+
+/* ========== ALERT CONTAINER ========== */
+.alert-container {
+  background: linear-gradient(90deg, #FFF0EE 0%, #FAF7F2 60%);
+  border-left: 4px solid var(--color-accent-red);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+.alert-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 12px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 150ms ease;
+}
+.alert-item:hover { background: rgba(192,57,43,0.06); }
+.alert-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.alert-badge.critical { background: #FFF0EE; color: var(--color-accent-red); }
+.alert-badge.warning { background: #FFFDE7; color: #7A6020; }
+
+/* ========== RECIPE CARD GRID ========== */
+.recipe-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-lg);
+}
+.recipe-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-elevation-1);
+  transition: box-shadow 200ms ease, transform 200ms ease;
+  cursor: pointer;
+}
+.recipe-card:hover {
+  box-shadow: var(--shadow-elevation-2);
+  transform: translateY(-3px);
+}
+.recipe-thumb {
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  position: relative;
+  overflow: hidden;
+}
+.recipe-alert-badge {
+  position: absolute;
+  top: 8px; right: 8px;
+  background: var(--color-accent-red);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+}
+.recipe-card-body { padding: var(--space-md); }
+.recipe-card-name { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+.recipe-card-numbers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+.recipe-card-numbers .num-label { font-size: 10px; color: var(--color-text-muted); display: block; }
+.recipe-card-numbers .num-value { font-weight: 600; color: var(--color-text-primary); }
+.num-profit.positive { color: var(--color-accent-green); }
+.num-profit.negative { color: var(--color-accent-red); }
+
+/* ========== RECIPE DETAIL 2-COLUMN ========== */
+.recipe-detail-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: var(--space-lg);
+  align-items: start;
+}
+.control-panel {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-elevation-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.result-panel { display: flex; flex-direction: column; gap: var(--space-lg); }
+
+/* ========== SUMMARY BAR ========== */
+.summary-bar {
+  background: linear-gradient(135deg, #8B5E3C 0%, #C4885A 100%);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  color: white;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+  text-align: center;
+}
+.summary-bar .sb-value { font-family: var(--font-display); font-size: 28px; }
+.summary-bar .sb-label { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+
+/* ========== STEPPER ========== */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.stepper button {
+  width: 44px; height: 44px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  font-family: var(--font-mono);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  transition: all 150ms ease;
+}
+.stepper button:hover { background: var(--color-primary-xlight); color: var(--color-primary); }
+.stepper button:disabled { opacity: 0.4; cursor: not-allowed; }
+.stepper input {
+  width: 64px; height: 44px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+/* ========== DONUT CHART ========== */
+.donut-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+}
+.donut-chart-wrap {
+  position: relative;
+  width: 240px; height: 240px;
+  flex-shrink: 0;
+}
+.donut-chart-wrap canvas { width: 100%; height: 100%; }
+.donut-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  background: var(--color-bg-surface);
+  border-radius: 50%;
+  width: 120px; height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 4px rgba(44,24,16,0.06);
+}
+.donut-center .dc-pct { font-family: var(--font-display); font-size: 24px; color: var(--color-text-primary); }
+.donut-center .dc-label { font-size: 10px; color: var(--color-text-muted); }
+.donut-legend { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+
+/* ========== INGREDIENT LIST ROW ========== */
+.ingredient-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 12px var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  min-height: 64px;
+  transition: background 150ms ease;
+}
+.ingredient-row:hover { background: var(--color-primary-xlight); }
+.ingredient-row .drag-handle { cursor: grab; color: var(--color-text-muted); font-size: 14px; padding: 4px; min-width: 24px; text-align: center; user-select: none; }
+.ingredient-row .ing-name { flex: 1; font-size: 15px; font-weight: 600; }
+.ingredient-row .ing-qty-input {
+  width: 80px; height: 44px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0 8px;
+  background: var(--color-bg-elevated);
+}
+.ingredient-row .ing-qty-input:focus { outline: none; border-color: var(--color-border-focus); box-shadow: 0 0 0 3px rgba(196,136,90,0.2); }
+.ingredient-row .ing-cost { font-family: var(--font-mono); font-size: 14px; color: var(--color-primary); min-width: 80px; text-align: right; font-weight: 500; }
+.ingredient-row .ing-unit { font-size: 13px; color: var(--color-text-muted); min-width: 36px; }
+
+/* ========== RECIPE INGREDIENT TABLE (rigid grid, perfect column alignment) ========== */
+#recipeIngredientList { overflow-x: auto; }
+.ri-head, .ri-row {
+  display: grid;
+  grid-template-columns: 24px 80px minmax(90px, 1fr) 96px 82px 38px 78px 44px;
+  align-items: center;
+  column-gap: var(--space-sm);
+  min-width: 580px;            /* keeps columns aligned; scrolls instead of wrapping on narrow screens */
+  padding: 8px var(--space-md);
+}
+.ri-head {
+  border-bottom: 1px solid var(--color-border);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.4px;
+  position: sticky; top: 0;
+  background: var(--color-bg-surface);
+  z-index: 2;
+}
+.ri-row {
+  border-bottom: 1px solid var(--color-border);
+  min-height: 64px;
+  transition: background 150ms ease;
+}
+.ri-row:hover { background: var(--color-primary-xlight); }
+.ri-row:last-child { border-bottom: none; }
+
+.ri-c-handle { cursor: grab; color: var(--color-text-muted); font-size: 14px; text-align: center; line-height: 1; user-select: none; }
+.ri-c-tag    { justify-self: start; max-width: 100%; overflow: hidden; }
+.ri-c-name   { font-size: 15px; font-weight: 600; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ri-c-price  { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-secondary); text-align: right; white-space: nowrap; }
+.ri-c-qty {
+  width: 100%; height: 40px;
+  text-align: right;
+  font-family: var(--font-mono); font-size: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0 8px;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  transition: border 150ms ease, box-shadow 150ms ease;
+}
+.ri-c-qty:focus { outline: none; border-color: var(--color-border-focus); box-shadow: 0 0 0 3px rgba(196,136,90,0.2); }
+.ri-c-unit { font-size: 12px; color: var(--color-text-muted); text-align: center; white-space: nowrap; }
+.ri-c-cost { font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: var(--color-primary); text-align: right; white-space: nowrap; }
+.ri-c-del  { justify-self: center; }
+.ri-head .ri-c-price, .ri-head .ri-c-cost { text-align: right; }
+.ri-head .ri-c-qty-h { text-align: right; font-family: var(--font-thai); }
+.ri-head .ri-c-unit { text-align: center; }
+
+/* ========== TOOLTIP ========== */
+.tooltip-wrap { position: relative; display: inline-flex; }
+.tooltip-wrap .info-icon {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-text-muted);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+}
+.tooltip-box {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-text-primary);
+  color: #fff;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  line-height: 1.6;
+  width: 260px;
+  z-index: 200;
+  box-shadow: var(--shadow-elevation-3);
+}
+.tooltip-box::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--color-text-primary);
+}
+.tooltip-wrap:hover .tooltip-box { display: block; }
+
+/* ========== TIMESTAMP TOOLTIP (Ingredient List) ========== */
+.timestamp-wrap {
+  position: relative;
+  cursor: default;
+  white-space: nowrap;
+}
+.timestamp-wrap .ts-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-text-primary);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-thai);
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 150;
+  box-shadow: var(--shadow-elevation-2);
+  pointer-events: none;
+}
+.timestamp-wrap .ts-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--color-text-primary);
+}
+.timestamp-wrap:hover .ts-tooltip { display: block; }
+
+/* ========== ADD-TO-RECIPE MODAL (standalone) ========== */
+.add-to-recipe-modal .modal-body { gap: var(--space-md); }
+.quick-add-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 150ms ease;
+  background: var(--color-bg-elevated);
+  min-height: 48px;
+}
+.quick-add-item:hover {
+  background: var(--color-primary-xlight);
+  border-color: var(--color-primary-light);
+}
+.quick-add-item.selected {
+  background: var(--color-primary-xlight);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(139,94,60,0.2);
+}
+
+/* ========== INGREDIENT ROW ENHANCED ========== */
+.ing-row-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  min-height: 72px;
+  transition: background 150ms ease;
+  cursor: default;
+}
+.ing-row-wrapper:hover { background: var(--color-primary-xlight); }
+.ing-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ing-row-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: 2px;
+}
+.ing-row-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+}
+.ing-row-detail {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+.ing-row-price {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+.ing-row-stock {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.ing-row-stock.low { color: var(--color-accent-red); font-weight: 600; }
+.ing-row-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+.btn-icon {
+  width: 44px; height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--color-text-muted);
+  transition: all 150ms ease;
+}
+.btn-icon:focus-visible { outline: 3px solid var(--color-border-focus); outline-offset: 2px; }
+.btn-icon.edit:hover { color: var(--color-primary); background: var(--color-primary-xlight); }
+.btn-icon.delete { color: var(--color-text-muted); }
+.btn-icon.delete:hover { color: var(--color-accent-red); background: #FFF0EE; }
+
+/* ========== CONFIRM DIALOG ENHANCED ========== */
+.confirm-warning-box {
+  background: linear-gradient(90deg, #FFF0EE 0%, #FAF7F2 60%);
+  border-left: 4px solid var(--color-accent-red);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+.confirm-recipe-list {
+  margin-top: 8px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.confirm-recipe-list li {
+  padding: 4px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+/* ========== DRAG & DROP — Ingredient Rows (PRD §6.6) ========== */
+.ingredient-row-draggable {
+  cursor: grab;
+  user-select: none;
+}
+.ingredient-row-draggable .drag-handle { cursor: grab; }
+.ingredient-row-draggable.dragging {
+  opacity: 0.6;
+  background: var(--color-primary-xlight);
+  border: 2px dashed var(--color-primary-light);
+}
+.ingredient-row-draggable.drag-active {
+  /* Phase 1 — Lift */
+  box-shadow: var(--shadow-elevation-3);
+  transform: scale(1.02);
+  opacity: 0.95;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-primary-light);
+  z-index: 100;
+  position: relative;
+  transition: box-shadow 150ms ease-out, transform 150ms ease-out, background 150ms ease, border 150ms ease;
+}
+.ingredient-row-draggable.drag-over {
+  /* Placeholder indicator */
+  border-top: 3px solid var(--color-primary-light);
+  background: rgba(196,136,90,0.08);
+  transition: border-top 150ms ease, background 150ms ease;
+}
+.ingredient-row-draggable.drag-settled {
+  /* Phase 4 — Settle confirmation flash */
+  animation: settleFlash 600ms ease-out;
+}
+@keyframes settleFlash {
+  0%   { background: var(--color-primary-xlight); }
+  100% { background: transparent; }
+}
+
+/* ========== DONUT CHART (PRD §6.4) ========== */
+.donut-chart-section {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+}
+.donut-svg-container {
+  position: relative;
+  width: 240px; height: 240px;
+  flex-shrink: 0;
+}
+.donut-svg-container svg {
+  width: 100%; height: 100%;
+  transform: rotate(-90deg);
+}
+.donut-slice {
+  transition: opacity 200ms ease, filter 200ms ease;
+  cursor: pointer;
+}
+.donut-slice:hover {
+  filter: brightness(1.1);
+  opacity: 0.9;
+}
+.donut-center-overlay {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  background: var(--color-bg-base);
+  border-radius: 50%;
+  width: 110px; height: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 4px rgba(44,24,16,0.06);
+}
+.donut-center-overlay .dc-value {
+  font-family: var(--font-display);
+  font-size: 24px;
+  color: var(--color-text-primary);
+  line-height: 1;
+}
+.donut-center-overlay .dc-label {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+.donut-legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  flex: 1;
+  min-width: 180px;
+}
+.donut-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+.donut-legend-item:hover { opacity: 0.8; }
+.donut-legend-swatch {
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.donut-legend-name { flex: 1; font-weight: 500; }
+.donut-legend-cost { font-family: var(--font-mono); font-size: 12px; color: var(--color-primary); }
+.donut-legend-pct { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); min-width: 42px; text-align: right; }
+
+/* ========== RECIPE OVERVIEW ENHANCED ========== */
+.recipe-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+.recipe-count-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.recipe-emoji-placeholder {
+  font-size: 56px;
+  line-height: 1;
+}
+.recipe-card:hover .recipe-emoji-placeholder {
+  transform: scale(1.08);
+  transition: transform 200ms ease;
+}
+.recipe-card-name-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+.recipe-card-actions {
+  display: flex;
+  gap: var(--space-xs);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-sm);
+}
+
+/* ========== EDITABLE RECIPE NAME ========== */
+.recipe-name-editable {
+  border: 1px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: all 150ms ease;
+  width: 100%;
+  max-width: 400px;
+}
+.recipe-name-editable:hover {
+  border-color: var(--color-border);
+  background: var(--color-bg-elevated);
+}
+.recipe-name-editable:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  background: var(--color-bg-elevated);
+  box-shadow: 0 0 0 3px rgba(196,136,90,0.2);
+}
+
+
+/* ========== HAMBURGER ========== */
+.hamburger { display: none; }
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 1279px) {
+  .recipe-card-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 1023px) {
+  .sidebar { width: 64px; transform: translateX(0); }
+  .sidebar .nav-item span, .sidebar .sidebar-footer, .sidebar-logo span { display: none; }
+  .sidebar .nav-item { justify-content: center; padding: 0; }
+  .sidebar .nav-icon { font-size: 20px; }
+  .sidebar-logo { justify-content: center; font-size: 20px; }
+  .main-area { margin-left: 64px; }
+  .recipe-card-grid { grid-template-columns: repeat(2, 1fr); }
+  .recipe-detail-layout { grid-template-columns: 1fr; }
+  .donut-container { justify-content: center; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-md); }
+}
+@media (max-width: 767px) {
+  .sidebar { display: none; }
+  .sidebar.mobile-open {
+    display: flex;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: 280px;
+    z-index: 100;
+    transform: translateX(0);
+    box-shadow: var(--shadow-elevation-4);
+  }
+  .sidebar.mobile-open .nav-item span,
+  .sidebar.mobile-open .sidebar-footer,
+  .sidebar.mobile-open .sidebar-logo span { display: inline; }
+  .sidebar.mobile-open .nav-item { justify-content: flex-start; padding: 0 var(--space-lg); }
+  .sidebar.mobile-open .sidebar-logo { justify-content: flex-start; }
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(44,24,16,0.45);
+    z-index: 99;
+  }
+  .sidebar-overlay.open { display: block; }
+  .main-area { margin-left: 0; padding-bottom: calc(var(--bottom-tab-height) + env(safe-area-inset-bottom, 0)); }
+  .hamburger { display: flex; }
+  .bottom-tab-bar { display: flex; }
+  .page-content { padding: var(--space-md); }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); }
+  .kpi-card { padding: 14px; min-height: 90px; }
+  .kpi-card .kpi-value { font-size: 26px; }
+  .recipe-card-grid { grid-template-columns: 1fr; }
+  .summary-bar { grid-template-columns: repeat(3, 1fr); }
+  .summary-bar .sb-value { font-size: 22px; }
+  .ingredient-row { flex-wrap: wrap; padding: 10px var(--space-sm); }
+}
+
+/* ========== ANIMATIONS ========== */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dash-stagger {
+  opacity: 0;
+  animation: fadeSlideIn 350ms ease-out forwards;
+}
+.dash-stagger-1 { animation-delay: 0ms; }
+.dash-stagger-2 { animation-delay: 100ms; }
+.dash-stagger-3 { animation-delay: 150ms; }
+.dash-stagger-4 { animation-delay: 200ms; }
+.dash-stagger-5 { animation-delay: 250ms; }
+.dash-stagger-6 { animation-delay: 350ms; }
+.dash-stagger-7 { animation-delay: 450ms; }
+@keyframes alertPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0); }
+  50% { box-shadow: 0 0 0 8px rgba(192,57,43,0.12); }
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(40px); }
+}
+@keyframes numFlash {
+  0% { color: inherit; }
+  30% { color: var(--color-primary-light); }
+  100% { color: inherit; }
+}
+@keyframes ingredientHighlight {
+  0% {
+    background: rgba(212,168,67,0);
+    box-shadow: 0 0 0 0 rgba(212,168,67,0), 0 0 0 0 rgba(212,168,67,0);
+  }
+  22% {
+    background: rgba(212,168,67,0.14);
+    box-shadow: 0 0 0 2px rgba(212,168,67,0.32), 0 8px 26px rgba(212,168,67,0.30);
+  }
+  55% {
+    background: rgba(212,168,67,0.08);
+    box-shadow: 0 0 0 1px rgba(212,168,67,0.20), 0 6px 18px rgba(212,168,67,0.16);
+  }
+  100% {
+    background: rgba(212,168,67,0);
+    box-shadow: 0 0 0 0 rgba(212,168,67,0), 0 0 0 0 rgba(212,168,67,0);
+  }
+}
+.num-flash { animation: numFlash 400ms ease; }
+.highlight-row {
+  position: relative;
+  z-index: 1;
+  border-radius: var(--radius-md);
+  animation: ingredientHighlight 1800ms cubic-bezier(0.22, 1, 0.36, 1) 1;
+}
+
+/* Utility */
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ===== Cloud Sync controls ===== */
+.sync-status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--color-text-muted); display: inline-block; transition: background 200ms ease; }
+.sync-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+.sync-switch input { opacity: 0; width: 0; height: 0; }
+.sync-slider { position: absolute; cursor: pointer; inset: 0; background: var(--color-border); border-radius: 24px; transition: background 200ms ease; }
+.sync-slider::before { content: ''; position: absolute; height: 18px; width: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform 200ms ease; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+.sync-switch input:checked + .sync-slider { background: var(--color-primary); }
+.sync-switch input:checked + .sync-slider::before { transform: translateX(20px); }
+.sync-switch input:focus-visible + .sync-slider { box-shadow: 0 0 0 3px rgba(196,136,90,0.3); }
+textarea.sync-field { resize: vertical; min-height: 120px; line-height: 1.5; }
+
+/* ===== Donut: dim sibling slices on hover (UI Spec §7.2) ===== */
+.donut-svg-container:hover .donut-slice:not(:hover) { opacity: 0.6; }
+
+/* ===== Respect reduced-motion preference (a11y checklist) ===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .kpi-card.kpi-alert.pulse { animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ========== APP LAYOUT ========== -->
+<div class="app-layout" id="appLayout">
+
+  <!-- ===== SIDEBAR OVERLAY (mobile) ===== -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileSidebar()"></div>
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span style="font-size:22px">🧁</span>
+      <span>Bakery BOH</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
+        <span class="nav-icon">📊</span><span>Dashboard</span>
+      </div>
+      <div class="nav-item" data-page="ingredients" onclick="navigateTo('ingredients')">
+        <span class="nav-icon">🧂</span><span>Ingredients</span>
+      </div>
+      <div class="nav-item" data-page="recipes" onclick="navigateTo('recipes')">
+        <span class="nav-icon">📖</span><span>Recipes</span>
+      </div>
+      <div class="nav-item" data-page="settings" onclick="navigateTo('settings')">
+        <span class="nav-icon">⚙</span><span>ตั้งค่า</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="font-weight:600;color:var(--color-text-primary);cursor:pointer" id="storeNameDisplay" onclick="editStoreName()" title="คลิกเพื่อเปลี่ยนชื่อร้าน">ร้าน: ขนมหวานใจ</div>
+      <div style="margin-top:4px">v1.0 — Local</div>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="main-area" id="mainArea">
+
+    <!-- Header Bar -->
+    <header class="header-bar" id="headerBar">
+      <button class="btn btn-ghost hamburger" onclick="toggleMobileSidebar()" aria-label="เปิดเมนู" style="font-size:22px;">☰</button>
+      <h1 style="flex:1;font-size:20px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="pageTitle">กระดานควบคุม</h1>
+      <span style="font-size:13px;color:var(--color-text-muted)" id="lastUpdate"></span>
+    </header>
+
+    <!-- Page Content -->
+    <div class="page-content" id="pageContent">
+
+      <!-- ========== PAGE :: DASHBOARD ========== -->
+      <div class="page active" id="page-dashboard">
+        <!-- KPI Grid -->
+        <div class="kpi-grid" id="kpiGrid"></div>
+        <!-- Top 5 Table -->
+        <div class="section-card" id="top5Section">
+          <div class="section-header">
+            <span class="section-title">🏆 Top 5 กำไรต่อชิ้น</span>
+          </div>
+          <div style="overflow-x:auto" id="top5Table"></div>
+        </div>
+        <!-- Alert List -->
+        <div id="alertSection"></div>
+      </div>
+
+      <!-- ========== PAGE :: INGREDIENTS ========== -->
+      <div class="page" id="page-ingredients">
+        <div style="display:flex;gap:var(--space-md);margin-bottom:var(--space-md);flex-wrap:wrap">
+          <div class="search-bar" style="flex:1;min-width:200px">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="ingSearch" placeholder="ค้นหาวัตถุดิบ...">
+          </div>
+          <button class="btn btn-primary" onclick="openIngredientModal()">+ เพิ่มวัตถุดิบ</button>
+        </div>
+        <!-- Filter Chips -->
+        <div style="display:flex;gap:var(--space-sm);margin-bottom:var(--space-md);flex-wrap:wrap" id="ingFilterChips"></div>
+        <!-- Ingredient List -->
+        <div class="section-card" style="padding:0;overflow:hidden">
+          <div id="ingredientList"></div>
+        </div>
+      </div>
+
+      <!-- ========== PAGE :: RECIPES ========== -->
+      <div class="page" id="page-recipes">
+        <div style="display:flex;gap:var(--space-md);margin-bottom:var(--space-md);flex-wrap:wrap;align-items:center">
+          <div class="search-bar" style="flex:1;min-width:200px">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="recipeSearch" placeholder="ค้นหาสูตร...">
+          </div>
+          <select class="select-field" style="width:auto;min-width:160px" id="recipeSort" onchange="renderRecipes()">
+            <option value="last_viewed">เปิดล่าสุด</option>
+            <option value="profit_high">กำไรสูงสุด</option>
+            <option value="fc_best">FC% ดีสุด</option>
+            <option value="name_az">ชื่อ A-Z</option>
+          </select>
+          <button class="btn btn-primary" id="btnCreateRecipe" onclick="openRecipeModal()">+ สร้างสูตร</button>
+        </div>
+        <div style="display:flex;gap:var(--space-sm);margin-bottom:var(--space-md);flex-wrap:wrap" id="recipeFilterChips"></div>
+        <div class="recipe-card-grid" id="recipeCardGrid"></div>
+      </div>
+
+      <!-- ========== PAGE :: RECIPE DETAIL ========== -->
+      <div class="page" id="page-recipe-detail">
+        <div style="display:flex;align-items:center;gap:var(--space-sm);margin-bottom:var(--space-lg);flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" onclick="navigateTo('recipes')">← กลับ</button>
+          <input type="text" class="recipe-name-editable" id="detailRecipeNameInput" value="—" placeholder="ชื่อสูตร" onchange="updateRecipeName()" onblur="updateRecipeName()">
+          <span style="font-size:11px;color:var(--color-text-muted)" id="recipeWeightBadge"></span>
+        </div>
+        <div class="recipe-detail-layout">
+          <!-- Control Panel -->
+          <div class="control-panel" id="controlPanel">
+            <h3 style="font-size:16px;font-weight:600">🎛 ตั้งค่าการคำนวณ</h3>
+            <div>
+              <label class="input-label">ประเภทขนม</label>
+              <select class="select-field" id="rcpCategory" onchange="onRecipeCategoryChange()"></select>
+            </div>
+            <div>
+              <label class="input-label">ราคาขาย (ต่อชิ้น) *</label>
+              <div style="position:relative">
+                <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:15px;color:var(--color-text-secondary)">฿</span>
+                <input type="number" class="input-field" style="padding-left:34px" id="rcpSellingPrice" value="0" min="0" step="0.01" oninput="onRecipeFieldChange();recalculateRecipeDebounced()">
+              </div>
+            </div>
+            <div>
+              <label class="input-label">จำนวนชิ้นต่อ Batch *</label>
+              <div class="stepper">
+                <button onclick="stepperChange(-1)" id="stepperDown">➖</button>
+                <input type="number" id="rcpPieces" value="1" min="1" max="9999" oninput="onRecipeFieldChange();recalculateRecipeDebounced()">
+                <button onclick="stepperChange(1)" id="stepperUp">➕</button>
+              </div>
+            </div>
+            <div style="border-top:1px solid var(--color-border);padding-top:var(--space-md)">
+              <label class="input-label">
+                ค่าใช้จ่ายแฝง (Overhead)
+                <span class="tooltip-wrap" style="margin-left:4px">
+                  <span class="info-icon">ⓘ</span>
+                  <span class="tooltip-box">💡 ค่าใช้จ่ายแฝง (Overhead)<br>ครอบคลุม: ค่าไฟ, ค่าแก๊ส, ค่าน้ำ, ค่าบรรจุภัณฑ์, ค่าเช่า<br>แนะนำ: 10–20% ของต้นทุนวัตถุดิบ</span>
+                </span>
+              </label>
+              <div style="position:relative">
+                <input type="number" class="input-field" style="padding-right:36px" id="rcpOverhead" value="0" min="0" max="100" step="0.01" oninput="onRecipeFieldChange();recalculateRecipeDebounced()">
+                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:14px;color:var(--color-text-secondary)">%</span>
+              </div>
+            </div>
+            <div>
+              <label class="input-label">VAT (ถ้ามี)</label>
+              <div style="position:relative">
+                <input type="number" class="input-field" style="padding-right:36px" id="rcpVat" value="0" min="0" max="100" step="0.01" oninput="onRecipeFieldChange();recalculateRecipeDebounced()">
+                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:14px;color:var(--color-text-secondary)">%</span>
+              </div>
+            </div>
+            <div>
+              <label class="input-label">
+                ค่าแรง (Labor)
+                <span class="tooltip-wrap" style="margin-left:4px">
+                  <span class="info-icon">ⓘ</span>
+                  <span class="tooltip-box">💡 ค่าแรง (Labor Cost)<br>คำนวณจาก: เวลาที่ใช้ผลิต × อัตราค่าแรง/ชั่วโมง<br>แนะนำ: 15–25% ของราคาขาย</span>
+                </span>
+              </label>
+              <div style="position:relative">
+                <input type="number" class="input-field" style="padding-right:36px" id="rcpLabor" value="0" min="0" max="100" step="0.01" oninput="onRecipeFieldChange();recalculateRecipeDebounced()">
+                <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:14px;color:var(--color-text-secondary)">%</span>
+              </div>
+            </div>
+            <button class="btn btn-primary" style="width:100%" onclick="saveCurrentRecipe()">💾 บันทึกสูตร</button>
+          </div>
+          <!-- Result Panel -->
+          <div class="result-panel">
+            <div class="summary-bar" id="summaryBar"></div>
+            <!-- Donut Chart Section (PRD §6.4) -->
+            <div class="section-card">
+              <div class="section-header">
+                <span class="section-title">📊 สัดส่วนต้นทุนวัตถุดิบ</span>
+              </div>
+              <div class="donut-chart-section" id="donutChartSection">
+                <div class="donut-svg-container" id="donutSvgContainer"></div>
+                <div class="donut-legend-list" id="donutLegend"></div>
+              </div>
+            </div>
+            <div class="section-card">
+              <div class="section-header">
+                <span class="section-title" style="display:flex;align-items:center;gap:var(--space-sm)">
+                  🧂 ส่วนผสมทั้งหมด (<span id="ingCount">0</span> รายการ)
+                </span>
+                <button class="btn btn-primary btn-sm" onclick="openAddIngredientToRecipeModal()">+ เพิ่มส่วนผสม</button>
+              </div>
+              <div id="recipeIngredientList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PAGE :: SETTINGS ========== -->
+      <div class="page" id="page-settings">
+        <div class="section-card">
+          <div class="section-header"><span class="section-title">🏪 ข้อมูลร้าน</span></div>
+          <div style="display:flex;flex-direction:column;gap:var(--space-md);max-width:400px">
+            <div>
+              <label class="input-label">ชื่อร้าน</label>
+              <input type="text" class="input-field" id="settingsStoreName" placeholder="ชื่อร้าน" style="font-family:var(--font-thai)">
+              <button class="btn btn-primary" style="margin-top:8px" onclick="saveStoreName()">บันทึกชื่อร้าน</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header"><span class="section-title">📂 จัดการหมวดหมู่วัตถุดิบ</span></div>
+          <div id="ingCategoryManager" style="display:flex;flex-direction:column;gap:var(--space-sm)"></div>
+          <div style="margin-top:var(--space-md);display:flex;gap:var(--space-sm)">
+            <input type="text" class="input-field" id="newIngCatName" placeholder="ชื่อหมวดหมู่ใหม่" style="font-family:var(--font-thai);flex:1">
+            <input type="text" class="input-field" id="newIngCatEmoji" placeholder="🧁" style="width:60px;text-align:center">
+            <button class="btn btn-primary" onclick="addIngredientCategory()">+ เพิ่ม</button>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header"><span class="section-title">📖 จัดการหมวดหมู่สูตรขนม</span></div>
+          <div id="recipeCategoryManager" style="display:flex;flex-direction:column;gap:var(--space-sm)"></div>
+          <div style="margin-top:var(--space-md);display:flex;gap:var(--space-sm)">
+            <input type="text" class="input-field" id="newRecCatName" placeholder="ชื่อหมวดหมู่ใหม่" style="font-family:var(--font-thai);flex:1">
+            <input type="text" class="input-field" id="newRecCatEmoji" placeholder="🎂" style="width:60px;text-align:center">
+            <button class="btn btn-primary" onclick="addRecipeCategory()">+ เพิ่ม</button>
+          </div>
+        </div>
+
+        <!-- ========== CLOUD SYNC (Firestore) ========== -->
+        <div class="section-card">
+          <div class="section-header">
+            <span class="section-title">☁️ ซิงค์ข้อมูลข้ามอุปกรณ์</span>
+            <span style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--color-text-secondary)">
+              <span class="sync-status-dot" id="syncStatusDot"></span>
+              <span id="syncStatusText">ยังไม่ได้เข้าสู่ระบบ</span>
+            </span>
+          </div>
+
+          <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:var(--space-md);line-height:1.6">
+            เข้าสู่ระบบเพื่อซิงค์วัตถุดิบและสูตรขนมระหว่างมือถือ แท็บเล็ต และคอมพิวเตอร์ ข้อมูลในเครื่องยังทำงานได้ตามปกติแม้ออฟไลน์
+          </p>
+
+          <!-- LOGIN VIEW (shown when signed out) -->
+          <div id="syncLoginView" style="display:flex;flex-direction:column;gap:var(--space-md);max-width:400px">
+            <div>
+              <label class="input-label">ชื่อผู้ใช้</label>
+              <input type="text" id="syncUsername" class="input-field" autocomplete="username" placeholder="ชื่อผู้ใช้" style="font-family:var(--font-thai)">
+            </div>
+            <div>
+              <label class="input-label">รหัสผ่าน</label>
+              <input type="password" id="syncPassword" class="input-field" autocomplete="current-password" placeholder="อย่างน้อย 6 ตัวอักษร">
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:var(--space-sm)">
+              <button class="btn btn-primary" type="button" id="btnSyncLogin" onclick="loginSync()">🔐 เข้าสู่ระบบ</button>
+              <button class="btn btn-secondary" type="button" id="btnSyncSignup" onclick="signupSync()">สมัครครั้งแรก</button>
+            </div>
+          </div>
+
+          <!-- ACCOUNT VIEW (shown when signed in) -->
+          <div id="syncAccountView" style="display:none;flex-direction:column;gap:var(--space-md)">
+            <div style="font-size:14px;color:var(--color-text-primary)">เข้าสู่ระบบในชื่อ <b id="syncAccountName">—</b></div>
+            <div style="display:flex;flex-wrap:wrap;gap:var(--space-sm);align-items:center">
+              <button class="btn btn-secondary" type="button" id="btnSyncPush" onclick="pushToCloud()" disabled>⬆️ อัปโหลดขึ้นคลาวด์</button>
+              <button class="btn btn-secondary" type="button" id="btnSyncPull" onclick="pullFromCloud()" disabled>⬇️ ดึงจากคลาวด์</button>
+              <button class="btn btn-ghost" type="button" id="btnSyncLogout" onclick="logoutSync()" style="margin-left:auto">ออกจากระบบ</button>
+            </div>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+              <span class="sync-switch">
+                <input type="checkbox" id="syncAutoToggle" onchange="toggleAutoSync(this.checked)">
+                <span class="sync-slider"></span>
+              </span>
+              <span style="font-size:14px;color:var(--color-text-primary)">ซิงค์อัตโนมัติแบบเรียลไทม์</span>
+            </label>
+            <div id="syncLastSynced" style="font-size:12px;color:var(--color-text-muted)">ยังไม่เคยซิงค์</div>
+          </div>
+
+          <details style="font-size:13px;color:var(--color-text-secondary);margin-top:var(--space-md)">
+            <summary style="cursor:pointer;font-weight:600;color:var(--color-primary)">วิธีตั้งค่า Firebase (กดเพื่อดู)</summary>
+            <ol style="margin:8px 0 0 18px;line-height:1.9">
+              <li>สร้างโปรเจกต์ที่ <span style="font-family:var(--font-mono)">console.firebase.google.com</span></li>
+              <li>เปิด <b>Build → Firestore Database → Create database</b></li>
+              <li>เปิด <b>Build → Authentication → Sign-in method → Email/Password → Enable</b></li>
+              <li>ไปที่ <b>Project settings → Your apps → Web (&lt;/&gt;)</b> คัดลอกค่า <span style="font-family:var(--font-mono)">firebaseConfig</span></li>
+              <li>วาง config ลงในไฟล์ <span style="font-family:var(--font-mono)">index.html</span> ตรงบล็อก <span style="font-family:var(--font-mono)">window.FIREBASE_CONFIG</span> (ในส่วน &lt;head&gt;)</li>
+              <li>ตั้ง Security Rules ของ Firestore เป็น:</li>
+            </ol>
+            <pre style="background:var(--color-bg-surface);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:10px;margin-top:8px;font-size:11px;overflow-x:auto;font-family:var(--font-mono)">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /bakery_syncs/{uid} {
+      allow read, write: if request.auth != null
+                         &amp;&amp; request.auth.uid == uid;
+    }
+  }
+}</pre>
+          </details>
+        </div>
+
+        <div class="section-card" style="border:2px solid rgba(192,57,43,0.4);background:linear-gradient(135deg,#FFF5F5,#FAF7F2)">
+          <div class="section-header"><span class="section-title" style="color:var(--color-accent-red)">⚠️ พื้นที่อันตราย</span></div>
+          <p style="font-size:14px;color:var(--color-text-secondary);margin-bottom:12px">การคืนค่าดั้งเดิมจะลบข้อมูลวัตถุดิบและสูตรขนมทั้งหมดอย่างถาวร ไม่สามารถกู้คืนได้</p>
+          <button class="btn btn-danger" style="background:var(--color-accent-red);color:#fff" onclick="showResetConfirm()">🗑 คืนค่าดั้งเดิม (ลบทั้งหมด)</button>
+        </div>
+      </div>
+
+    </div><!-- /page-content -->
+  </main><!-- /main-area -->
+
+  <!-- ===== BOTTOM TAB BAR (MOBILE) ===== -->
+  <nav class="bottom-tab-bar" id="bottomTabBar">
+    <div class="tab-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
+      <span class="tab-icon">📊</span>
+      <span>Dashboard</span>
+    </div>
+    <div class="tab-item" data-page="ingredients" onclick="navigateTo('ingredients')">
+      <span class="tab-icon">🧂</span>
+      <span>Ingredients</span>
+    </div>
+    <div class="tab-item" data-page="recipes" onclick="navigateTo('recipes')">
+      <span class="tab-icon">📖</span>
+      <span>Recipes</span>
+    </div>
+    <div class="tab-item" data-page="settings" onclick="navigateTo('settings')">
+      <span class="tab-icon">⚙</span>
+      <span>ตั้งค่า</span>
+    </div>
+  </nav>
+
+</div><!-- /app-layout -->
+
+<!-- ========== MODAL: ADD/EDIT INGREDIENT ========== -->
+<div class="modal-overlay" id="ingredientModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="ingModalTitle">เพิ่มวัตถุดิบใหม่</h3>
+      <button class="btn btn-ghost" onclick="closeIngredientModal()" aria-label="ปิด">✕</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <label class="input-label">ชื่อวัตถุดิบ *</label>
+        <input type="text" class="input-field" id="ingFormName" placeholder="ชื่อวัตถุดิบ" style="font-family:var(--font-thai)" autocomplete="off">
+        <span class="error-msg" id="ingNameError" role="alert" style="display:none;color:var(--color-accent-red);font-size:12px;margin-top:4px"></span>
+      </div>
+      <div>
+        <label class="input-label">ประเภท *</label>
+        <select class="select-field" id="ingFormCategory"></select>
+      </div>
+      <!-- PACKAGE PURCHASE SECTION -->
+      <div style="background:var(--color-bg-surface);border-radius:var(--radius-md);padding:var(--space-md);margin:4px 0">
+        <label class="input-label" style="margin-bottom:8px">📦 ขนาดแพ็คเกจที่ซื้อ</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-md)">
+          <div>
+            <label style="font-size:12px;color:var(--color-text-muted);display:block;margin-bottom:4px">ปริมาณที่ซื้อ</label>
+            <input type="text" inputmode="decimal" class="input-field" id="ingFormPackQty" placeholder="1" value="1" style="font-family:var(--font-mono)" oninput="sanitizeNumberInput(this);updateCostPerGramPreview()" onblur="validateNumberField(this,0.001)">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--color-text-muted);display:block;margin-bottom:4px">หน่วยแพ็คเกจ</label>
+            <select class="select-field" id="ingFormPackUnit" onchange="updateCostPerGramPreview()">
+              <option value="kg">กิโลกรัม (kg)</option>
+              <option value="g">กรัม (g)</option>
+              <option value="L">ลิตร (L)</option>
+              <option value="ml">มิลลิลิตร (ml)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-md)">
+        <div>
+          <label class="input-label">ราคาที่ซื้อ (ต่อแพ็คเกจ) *</label>
+          <div style="position:relative">
+            <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:15px;color:var(--color-text-secondary);pointer-events:none">฿</span>
+            <input type="text" inputmode="decimal" class="input-field" id="ingFormPrice" placeholder="0.00" style="padding-left:30px" oninput="sanitizeNumberInput(this);updateCostPerGramPreview()" onblur="validateNumberField(this,0)">
+          </div>
+          <span class="error-msg" id="ingPriceError" role="alert" style="display:none;color:var(--color-accent-red);font-size:12px;margin-top:4px"></span>
+        </div>
+        <div>
+          <label class="input-label">หน่วยราคาอ้างอิง *</label>
+          <select class="select-field" id="ingFormUnit" onchange="updateCostPerGramPreview()"></select>
+        </div>
+      </div>
+      <!-- Auto-calc preview -->
+      <div style="background:var(--color-primary-xlight);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;color:var(--color-text-primary);min-height:20px" id="ingCostPerGram"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeIngredientModal()">ยกเลิก</button>
+      <button class="btn btn-primary" id="ingSaveBtn" onclick="saveIngredient()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: ADD INGREDIENT TO RECIPE (dedicated, enhanced) ========== -->
+<div class="modal-overlay add-to-recipe-modal" id="addToRecipeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🧂 เพิ่มส่วนผสมในสูตร</h3>
+      <button class="btn btn-ghost" onclick="closeAddToRecipeModal()" aria-label="ปิด">✕</button>
+    </div>
+    <div class="modal-body" id="addToRecipeBody">
+      <div class="search-bar" style="margin-bottom:8px">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="addToRecipeSearch" placeholder="ค้นหาหรือพิมพ์ชื่อเพื่อสร้างใหม่..." style="font-family:var(--font-thai)" oninput="renderAddToRecipeIngList()">
+      </div>
+      <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap" id="addToRecipeCatChips"></div>
+      <div>
+        <label class="input-label">เลือกวัตถุดิบ</label>
+        <div id="addToRecipeIngList" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
+        <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;color:var(--color-primary)" onclick="quickCreateIngredientFromRecipe()">+ สร้างวัตถุดิบใหม่แล้วเพิ่ม</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-md)">
+        <div>
+          <label class="input-label">ปริมาณที่ใช้</label>
+          <input type="text" inputmode="decimal" class="input-field" id="addToRecipeQty" placeholder="1" value="1" style="font-family:var(--font-mono)" oninput="sanitizeNumberInput(this)" onblur="validateNumberField(this,0.001)">
+        </div>
+        <div>
+          <label class="input-label">หน่วย</label>
+          <select class="select-field" id="addToRecipeUnit"></select>
+        </div>
+      </div>
+      <div id="addToRecipePreview" style="font-size:13px;color:var(--color-text-muted);min-height:20px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeAddToRecipeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" id="addToRecipeSaveBtn" onclick="addIngredientToRecipe()">เพิ่มลงสูตร</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: CONFIRM DELETE (enhanced) ========== -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="confirmTitle">ยืนยันการลบ</h3>
+      <button class="btn btn-ghost" onclick="closeConfirmModal()" aria-label="ปิด">✕</button>
+    </div>
+    <div class="modal-body" id="confirmBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeConfirmModal()">ยกเลิก</button>
+      <button class="btn btn-danger" id="confirmDeleteBtn">ยืนยันลบ (ซ่อนจากคลัง)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TOAST CONTAINER ========== -->
+<div class="toast-container" id="toastContainer" role="region" aria-live="polite" aria-atomic="false" aria-label="การแจ้งเตือน"></div>
+
+<!-- ========== MODAL: UNSAVED CHANGES ========== -->
+<div class="modal-overlay" id="unsavedModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h3>ยังไม่ได้บันทึก</h3>
+      <button class="btn btn-ghost" onclick="closeUnsavedModal()" aria-label="ปิด">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="text-align:center;padding:4px 0">
+        <div style="font-size:32px;margin-bottom:8px">📝</div>
+        <p style="font-size:15px;color:var(--color-text-secondary);line-height:1.6">
+          คุณมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึกในสูตรนี้<br>ต้องการทำอย่างไรต่อ?
+        </p>
+      </div>
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap">
+      <button class="btn btn-secondary" onclick="closeUnsavedModal()">ยกเลิก</button>
+      <button class="btn btn-danger" onclick="unsavedLeaveWithoutSaving()">ออกโดยไม่บันทึก</button>
+      <button class="btn btn-primary" onclick="unsavedSaveThenLeave()">บันทึกแล้วออก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SCRIPT ========== -->
+<script>
+'use strict';
+
+/* ===================================================================
+ *  LOCALSTORAGE UTILITY
+ * =================================================================== */
+const LS_KEY = 'bakery_boh_data';
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    console.error('Failed to load state:', e);
+    return null;
+  }
+}
+
+function saveState(state) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error('Failed to save state:', e);
+    showToast('error', 'ไม่สามารถบันทึกข้อมูลได้ — พื้นที่เก็บข้อมูลเต็ม');
+  }
+}
+
+/* ===================================================================
+ *  UNIT CONVERSION
+ * =================================================================== */
+const UNIT_GRAMS_MAP = {
+  'กก.': 1000, 'กรัม': 1, 'มล.': 1,
+  'ลิตร': 1000, 'ถ้วย': 240,
+  'ช้อนโต๊ะ': 15, 'ช้อนชา': 5, 'ฟอง': 50
+};
+const DENSITY_MAP = {
+  'น้ำ': 1.00, 'นม': 1.03, 'วิปปิ้งครีม': 0.98,
+  'น้ำมันพืช': 0.92, 'น้ำผึ้ง': 1.42, 'นมข้นหวาน': 1.30, 'กลิ่นวานิลลา': 0.88
+};
+
+/* ===================================================================
+ *  CATEGORY TAG COLORS (from PRD §1.5)
+ * =================================================================== */
+const CATEGORY_COLORS = {
+  'flour': { bg: '#FFF3E0', text: '#8B5E3C', border: '#F2DCC8', emoji: '🌾' },
+  'butter_fat': { bg: '#FFFDE7', text: '#7A6020', border: '#F5E6A3', emoji: '🧈' },
+  'milk_cream': { bg: '#E8F5E9', text: '#2E7D50', border: '#B2DFCA', emoji: '🥛' },
+  'fruit': { bg: '#FCE4EC', text: '#8E2040', border: '#F8BBD0', emoji: '🍓' },
+  'egg': { bg: '#FFF8E1', text: '#6D4C10', border: '#FFE082', emoji: '🥚' },
+  'chocolate_cocoa': { bg: '#EFEBE9', text: '#4E342E', border: '#D7CCC8', emoji: '🍫' },
+  'seasoning': { bg: '#F3E5F5', text: '#6A1B9A', border: '#CE93D8', emoji: '🧂' },
+  'other': { bg: '#E3F2FD', text: '#1565C0', border: '#90CAF9', emoji: '🧁' },
+  'cake': { bg: '#FFF3E0', text: '#8B5E3C', border: '#F2DCC8', emoji: '🎂' },
+  'bread': { bg: '#FFFDE7', text: '#7A6020', border: '#F5E6A3', emoji: '🥐' },
+  'pudding': { bg: '#E8F5E9', text: '#2E7D50', border: '#B2DFCA', emoji: '🍮' },
+  'cupcake': { bg: '#FCE4EC', text: '#8E2040', border: '#F8BBD0', emoji: '🧁' }
+};
+
+/* ===================================================================
+ *  MOCK DATA (first-time initialization)
+ * =================================================================== */
+function createMockData() {
+  const now = new Date().toISOString();
+  const dayAgo = new Date(Date.now() - 86400000).toISOString();
+  const weekAgo = new Date(Date.now() - 7*86400000).toISOString();
+  const monthAgo = new Date(Date.now() - 30*86400000).toISOString();
+
+  const ingredientCategories = [
+    { id: 'cat_ing_flour', name_th: 'แป้ง', name_en: 'flour', scope: 'ingredient', emoji: '🌾', sort_order: 1 },
+    { id: 'cat_ing_butter', name_th: 'เนยและไขมัน', name_en: 'butter_fat', scope: 'ingredient', emoji: '🧈', sort_order: 2 },
+    { id: 'cat_ing_milk', name_th: 'นมและครีม', name_en: 'milk_cream', scope: 'ingredient', emoji: '🥛', sort_order: 3 },
+    { id: 'cat_ing_fruit', name_th: 'ผลไม้', name_en: 'fruit', scope: 'ingredient', emoji: '🍓', sort_order: 4 },
+    { id: 'cat_ing_egg', name_th: 'ไข่', name_en: 'egg', scope: 'ingredient', emoji: '🥚', sort_order: 5 },
+    { id: 'cat_ing_choc', name_th: 'ช็อกโกแลต/โกโก้', name_en: 'chocolate_cocoa', scope: 'ingredient', emoji: '🍫', sort_order: 6 },
+    { id: 'cat_ing_seasoning', name_th: 'เครื่องปรุง', name_en: 'seasoning', scope: 'ingredient', emoji: '🧂', sort_order: 7 },
+    { id: 'cat_ing_other', name_th: 'อื่นๆ', name_en: 'other', scope: 'ingredient', emoji: '🧁', sort_order: 8 }
+  ];
+
+  const recipeCategories = [
+    { id: 'cat_rec_cake', name_th: 'เค้ก', name_en: 'cake', scope: 'recipe', emoji: '🎂', sort_order: 1 },
+    { id: 'cat_rec_bread', name_th: 'ขนมปัง', name_en: 'bread', scope: 'recipe', emoji: '🥐', sort_order: 2 },
+    { id: 'cat_rec_pudding', name_th: 'พุดดิ้ง', name_en: 'pudding', scope: 'recipe', emoji: '🍮', sort_order: 3 },
+    { id: 'cat_rec_cupcake', name_th: 'คัพเค้ก', name_en: 'cupcake', scope: 'recipe', emoji: '🧁', sort_order: 4 },
+    { id: 'cat_rec_other', name_th: 'อื่นๆ', name_en: 'other_recipe', scope: 'recipe', emoji: '🧁', sort_order: 5 }
+  ];
+
+  const ingredients = [
+    { id: 'ing_001', name: 'แป้งอเนกประสงค์', category_id: 'cat_ing_flour', price_per_unit: 45, unit: 'กก.', unit_grams: 1000, density_g_per_ml: 1.0, stock_quantity: 10, stock_unit: 'กก.', source: 'manual', is_active: true, last_price_update: weekAgo, previous_price: 42, created_at: monthAgo, updated_at: weekAgo },
+    { id: 'ing_002', name: 'แป้งเค้ก', category_id: 'cat_ing_flour', price_per_unit: 55, unit: 'กก.', unit_grams: 1000, density_g_per_ml: 1.0, stock_quantity: 5, stock_unit: 'กก.', source: 'manual', is_active: true, last_price_update: dayAgo, previous_price: 52, created_at: monthAgo, updated_at: dayAgo },
+    { id: 'ing_003', name: 'เนยจืด', category_id: 'cat_ing_butter', price_per_unit: 280, unit: 'กก.', unit_grams: 1000, density_g_per_ml: 0.92, stock_quantity: 3, stock_unit: 'กก.', source: 'manual', is_active: true, last_price_update: dayAgo, previous_price: 260, created_at: monthAgo, updated_at: dayAgo },
+    { id: 'ing_004', name: 'เนยเค็ม', category_id: 'cat_ing_butter', price_per_unit: 260, unit: 'กก.', unit_grams: 1000, density_g_per_ml: 0.92, stock_quantity: 2, stock_unit: 'กก.', source: 'manual', is_active: true, last_price_update: weekAgo, previous_price: 250, created_at: monthAgo, updated_at: weekAgo },
+    { id: 'ing_005', name: 'นมสด', category_id: 'cat_ing_milk', price_per_unit: 52, unit: 'ลิตร', unit_grams: 1000, density_g_per_ml: 1.03, stock_quantity: 8, stock_unit: 'ลิตร', source: 'manual', is_active: true, last_price_update: weekAgo, previous_price: 50, created_at: monthAgo, updated_at: weekAgo },
+    { id: 'ing_006', name: 'วิปปิ้งครีม', category_id: 'cat_ing_milk', price_per_unit: 165, unit: 'ลิตร', unit_grams: 1000, density_g_per_ml: 0.98, stock_quantity: 4, stock_unit: 'ลิตร', source: 'manual', is_active: true, last_price_update: dayAgo, previous_price: 160, created_at: monthAgo, updated_at: dayAgo },
+    { id: 'ing_007', name: 'บลูเบอร์รี่ (แช่แข็ง)', category_id: 'cat_ing_fruit', price_per_unit: 320, unit: 'กก.', unit_grams: 1000, density_g_per_ml: 1.0, stock_quantity: 2, stock_unit: 'กก.', source: 'manual', is_active: true, last_price_update: weekAgo, previous_price: 300, created_at: monthAgo, updated_at: weekAgo },
+    { id: 'ing_008', name: 'ไข่ไก่เบอร์ 2', category_id: 'cat_ing_egg', price_per_unit: 4.5, unit: 'ฟอง', unit_grams: 50, density_g_per_ml: 1.0, stock_quantity: 60, stock_unit: 'ฟอง', source: 'manual', is_active: true, last_price_update: weekAgo, previous_price: 4.2, created_at: monthAgo, updated_at: weekAgo },
+    { id: 'ing_009', name: 'ช็อกโกแลตคอมพาวด์', category_id: 'cat_ing_choc', price_per_unit: 220, unit: 'กก.', unit_grams: 1000, density_g_per_ml: 1.0, stock_quantity: 3, stock_unit: 'กก.', source: 'manual', is_active: true, last_price_update: dayAgo, previous_price: 210, created_at: monthAgo, updated_at: dayAgo },
+    { id: 'ing_010', name: 'น้ำตาลทราย', category_id: 'cat_ing_seasoning', price_per_unit: 28, unit: 'กก.', unit_grams: 1000, density_g_per_ml: 1.0, stock_quantity: 15, stock_unit: 'กก.', source: 'manual', is_active: true, last_price_update: monthAgo, previous_price: 27, created_at: monthAgo, updated_at: monthAgo },
+    { id: 'ing_011', name: 'ผงฟู', category_id: 'cat_ing_seasoning', price_per_unit: 180, unit: 'กก.', unit_grams: 1000, density_g_per_ml: 1.0, stock_quantity: 1, stock_unit: 'กก.', source: 'manual', is_active: true, last_price_update: monthAgo, previous_price: 175, created_at: monthAgo, updated_at: monthAgo },
+    { id: 'ing_012', name: 'กลิ่นวานิลลา', category_id: 'cat_ing_seasoning', price_per_unit: 450, unit: 'ลิตร', unit_grams: 1000, density_g_per_ml: 0.88, stock_quantity: 0.5, stock_unit: 'ลิตร', source: 'manual', is_active: true, last_price_update: monthAgo, previous_price: 430, created_at: monthAgo, updated_at: monthAgo },
+    { id: 'ing_013', name: 'น้ำมันพืช', category_id: 'cat_ing_butter', price_per_unit: 55, unit: 'ลิตร', unit_grams: 1000, density_g_per_ml: 0.92, stock_quantity: 5, stock_unit: 'ลิตร', source: 'manual', is_active: true, last_price_update: weekAgo, previous_price: 52, created_at: monthAgo, updated_at: weekAgo }
+  ];
+
+  // Helper to build ingredient snapshot for recipe
+  function makeIngSnapshot(ing, qty, unit, unitGrams) {
+    const density = ing.density_g_per_ml || 1.0;
+    const costPerGram = ing.price_per_unit / (ing.unit_grams * (density || 1.0));
+    const gramsUsed = qty * unitGrams * density;
+    const totalCost = costPerGram * gramsUsed;
+    return {
+      ingredient_id: ing.id, name: ing.name, category_id: ing.category_id,
+      quantity: qty, unit: unit, unit_grams: unitGrams,
+      density_g_per_ml: density,
+      price_per_unit: ing.price_per_unit,
+      ingredient_unit: ing.unit, ingredient_unit_grams: ing.unit_grams,
+      cost_per_gram: costPerGram, total_cost: totalCost, order: 0
+    };
+  }
+
+  return { ingredientCategories, recipeCategories, ingredients };
+}
+
+function createMockRecipes(ingredients, ingredientCategories, recipeCategories) {
+  const findIng = (name) => ingredients.find(i => i.name === name);
+
+  const recipeSpecs = [
+    {
+      name: 'ครัวซองค์ช็อกโกแลต', category_id: 'cat_rec_bread',
+      selling_price: 85, pieces_per_batch: 12,
+      overhead_percent: 15, vat_percent: 7, labor_percent: 20,
+      ingredients: [
+        { ingName: 'แป้งอเนกประสงค์', qty: 500, unit: 'กรัม', uG: 1 },
+        { ingName: 'เนยจืด', qty: 250, unit: 'กรัม', uG: 1 },
+        { ingName: 'น้ำตาลทราย', qty: 100, unit: 'กรัม', uG: 1 },
+        { ingName: 'ช็อกโกแลตคอมพาวด์', qty: 150, unit: 'กรัม', uG: 1 },
+        { ingName: 'ไข่ไก่เบอร์ 2', qty: 3, unit: 'ฟอง', uG: 50 },
+        { ingName: 'นมสด', qty: 200, unit: 'มล.', uG: 1 }
+      ]
+    },
+    {
+      name: 'บลูเบอร์รี่มัฟฟิน', category_id: 'cat_rec_cupcake',
+      selling_price: 55, pieces_per_batch: 8,
+      overhead_percent: 12, vat_percent: 7, labor_percent: 18,
+      ingredients: [
+        { ingName: 'แป้งอเนกประสงค์', qty: 300, unit: 'กรัม', uG: 1 },
+        { ingName: 'เนยเค็ม', qty: 120, unit: 'กรัม', uG: 1 },
+        { ingName: 'น้ำตาลทราย', qty: 150, unit: 'กรัม', uG: 1 },
+        { ingName: 'บลูเบอร์รี่ (แช่แข็ง)', qty: 200, unit: 'กรัม', uG: 1 },
+        { ingName: 'ไข่ไก่เบอร์ 2', qty: 2, unit: 'ฟอง', uG: 50 },
+        { ingName: 'นมสด', qty: 180, unit: 'มล.', uG: 1 },
+        { ingName: 'ผงฟู', qty: 8, unit: 'กรัม', uG: 1 },
+        { ingName: 'กลิ่นวานิลลา', qty: 5, unit: 'มล.', uG: 1 }
+      ]
+    },
+    {
+      name: 'บัตเตอร์เค้ก', category_id: 'cat_rec_cake',
+      selling_price: 45, pieces_per_batch: 10,
+      overhead_percent: 10, vat_percent: 7, labor_percent: 15,
+      ingredients: [
+        { ingName: 'แป้งเค้ก', qty: 250, unit: 'กรัม', uG: 1 },
+        { ingName: 'เนยจืด', qty: 200, unit: 'กรัม', uG: 1 },
+        { ingName: 'น้ำตาลทราย', qty: 180, unit: 'กรัม', uG: 1 },
+        { ingName: 'ไข่ไก่เบอร์ 2', qty: 4, unit: 'ฟอง', uG: 50 },
+        { ingName: 'นมสด', qty: 60, unit: 'มล.', uG: 1 },
+        { ingName: 'ผงฟู', qty: 5, unit: 'กรัม', uG: 1 },
+        { ingName: 'กลิ่นวานิลลา', qty: 3, unit: 'มล.', uG: 1 }
+      ]
+    },
+    {
+      name: 'ทาร์ตไข่', category_id: 'cat_rec_bread',
+      selling_price: 65, pieces_per_batch: 6,
+      overhead_percent: 15, vat_percent: 7, labor_percent: 20,
+      ingredients: [
+        { ingName: 'แป้งอเนกประสงค์', qty: 200, unit: 'กรัม', uG: 1 },
+        { ingName: 'เนยเค็ม', qty: 100, unit: 'กรัม', uG: 1 },
+        { ingName: 'น้ำตาลทราย', qty: 80, unit: 'กรัม', uG: 1 },
+        { ingName: 'ไข่ไก่เบอร์ 2', qty: 4, unit: 'ฟอง', uG: 50 },
+        { ingName: 'วิปปิ้งครีม', qty: 150, unit: 'มล.', uG: 1 },
+        { ingName: 'กลิ่นวานิลลา', qty: 2, unit: 'มล.', uG: 1 }
+      ]
+    },
+    {
+      name: 'ชีสเค้กญี่ปุ่น', category_id: 'cat_rec_cake',
+      selling_price: 120, pieces_per_batch: 8,
+      overhead_percent: 18, vat_percent: 7, labor_percent: 25,
+      ingredients: [
+        { ingName: 'แป้งเค้ก', qty: 100, unit: 'กรัม', uG: 1 },
+        { ingName: 'เนยจืด', qty: 80, unit: 'กรัม', uG: 1 },
+        { ingName: 'น้ำตาลทราย', qty: 120, unit: 'กรัม', uG: 1 },
+        { ingName: 'ไข่ไก่เบอร์ 2', qty: 6, unit: 'ฟอง', uG: 50 },
+        { ingName: 'วิปปิ้งครีม', qty: 200, unit: 'มล.', uG: 1 },
+        { ingName: 'นมสด', qty: 100, unit: 'มล.', uG: 1 }
+      ]
+    },
+    {
+      name: 'ขนมปังฮ็อตด็อก', category_id: 'cat_rec_bread',
+      selling_price: 35, pieces_per_batch: 10,
+      overhead_percent: 10, vat_percent: 7, labor_percent: 15,
+      ingredients: [
+        { ingName: 'แป้งอเนกประสงค์', qty: 400, unit: 'กรัม', uG: 1 },
+        { ingName: 'น้ำตาลทราย', qty: 50, unit: 'กรัม', uG: 1 },
+        { ingName: 'เนยเค็ม', qty: 40, unit: 'กรัม', uG: 1 },
+        { ingName: 'ไข่ไก่เบอร์ 2', qty: 2, unit: 'ฟอง', uG: 50 },
+        { ingName: 'นมสด', qty: 200, unit: 'มล.', uG: 1 },
+        { ingName: 'น้ำมันพืช', qty: 30, unit: 'มล.', uG: 1 }
+      ]
+    },
+    {
+      name: 'คุ้กกี้ช็อกโกแลตชิพ (ไม่สมบูรณ์)', category_id: 'cat_rec_other',
+      selling_price: 25, pieces_per_batch: 20,
+      overhead_percent: 0, vat_percent: 0, labor_percent: 0,
+      ingredients: [
+        { ingName: 'แป้งอเนกประสงค์', qty: 250, unit: 'กรัม', uG: 1 },
+        { ingName: 'เนยจืด', qty: 150, unit: 'กรัม', uG: 1 }
+      ]
+    },
+    {
+      name: 'ครัวซองค์เนย (ปัญหา FC% สูง)', category_id: 'cat_rec_bread',
+      selling_price: 60, pieces_per_batch: 8,
+      overhead_percent: 10, vat_percent: 7, labor_percent: 15,
+      ingredients: [
+        { ingName: 'แป้งอเนกประสงค์', qty: 400, unit: 'กรัม', uG: 1 },
+        { ingName: 'เนยจืด', qty: 350, unit: 'กรัม', uG: 1 },
+        { ingName: 'น้ำตาลทราย', qty: 50, unit: 'กรัม', uG: 1 },
+        { ingName: 'ไข่ไก่เบอร์ 2', qty: 2, unit: 'ฟอง', uG: 50 },
+        { ingName: 'นมสด', qty: 100, unit: 'มล.', uG: 1 }
+      ]
+    }
+  ];
+
+  const now = new Date().toISOString();
+  const recipes = recipeSpecs.map((spec, idx) => {
+    const ingSnapshots = spec.ingredients.map((s, i) => {
+      const ing = findIng(s.ingName);
+      if (!ing) return null;
+      return makeIngSnapshotFn(ing, s.qty, s.unit, s.uG, i);
+    }).filter(Boolean);
+
+    const calc = calculateAll(ingSnapshots, spec.pieces_per_batch, spec.selling_price, spec.overhead_percent, spec.vat_percent, spec.labor_percent);
+    const alerts = runAlertValidation({ name: spec.name, ingredients: ingSnapshots, selling_price: spec.selling_price, pieces_per_batch: spec.pieces_per_batch, overhead_percent: spec.overhead_percent, labor_percent: spec.labor_percent }, calc);
+
+    return {
+      id: 'rec_' + String(idx + 1).padStart(3, '0'),
+      name: spec.name, category_id: spec.category_id,
+      selling_price: spec.selling_price, pieces_per_batch: spec.pieces_per_batch,
+      overhead_percent: spec.overhead_percent, vat_percent: spec.vat_percent, labor_percent: spec.labor_percent,
+      ingredients: ingSnapshots,
+      total_weight_grams: calc.totalWeightGrams,
+      food_cost_per_piece: calc.foodCostPerPiece,
+      total_cost_per_piece: calc.totalCostPerPiece,
+      profit_per_piece: calc.profitPerPiece,
+      profit_margin_percent: calc.profitMarginPercent,
+      food_cost_percent: calc.foodCostPercent,
+      is_complete: !alerts.includes('incomplete_data'),
+      has_alerts: alerts.length > 0,
+      alert_reasons: alerts,
+      last_calculated_at: now, last_viewed_at: now,
+      thumbnail_url: null, created_at: now, updated_at: now
+    };
+  });
+  return recipes;
+}
+
+function makeIngSnapshotFn(ing, qty, unit, unitGrams, order) {
+  const density = ing.density_g_per_ml || 1.0;
+  const effectiveUnitGrams = ing.unit_grams * (ing.density_g_per_ml || 1.0);
+  const costPerGram = effectiveUnitGrams > 0 ? ing.price_per_unit / effectiveUnitGrams : 0;
+  const gramsUsed = qty * unitGrams * density;
+  const totalCost = costPerGram * gramsUsed;
+  return {
+    ingredient_id: ing.id, name: ing.name, category_id: ing.category_id,
+    quantity: qty, unit: unit, unit_grams: unitGrams,
+    density_g_per_ml: density,
+    price_per_unit: ing.price_per_unit,
+    ingredient_unit: ing.unit, ingredient_unit_grams: ing.unit_grams,
+    cost_per_gram: costPerGram, total_cost: totalCost, order: order
+  };
+}
+
+/* ===================================================================
+ *  CALCULATION ENGINE (from PRD Appendix C)
+ * =================================================================== */
+function round2(v) { return Math.round(v * 100) / 100; }
+function round3(v) { return Math.round(v * 1000) / 1000; }
+function round6(v) { return Math.round(v * 1000000) / 1000000; }
+
+function calcIngredientCost(ingSnapshot) {
+  const effectiveUnitGrams = ingSnapshot.ingredient_unit_grams * (ingSnapshot.density_g_per_ml || 1.0);
+  const costPerGram = effectiveUnitGrams > 0 ? ingSnapshot.price_per_unit / effectiveUnitGrams : 0;
+  const gramsUsed = ingSnapshot.quantity * ingSnapshot.unit_grams * (ingSnapshot.density_g_per_ml || 1.0);
+  return costPerGram * gramsUsed;
+}
+
+function calculateAll(ingredients, piecesPerBatch, sellingPrice, overheadPercent, vatPercent, laborPercent) {
+  const safePieces = Math.max(1, Math.floor(piecesPerBatch || 1));
+  const totalFoodCost = ingredients.reduce((sum, ing) => sum + (ing.total_cost || calcIngredientCost(ing)), 0);
+  const foodCostPerPiece = totalFoodCost / safePieces;
+  const totalWeightGrams = ingredients.reduce((sum, ing) => sum + ing.quantity * ing.unit_grams * (ing.density_g_per_ml || 1.0), 0);
+  const totalCostPerPiece = foodCostPerPiece * (1 + (overheadPercent || 0) / 100 + (vatPercent || 0) / 100 + (laborPercent || 0) / 100);
+  const profitPerPiece = sellingPrice - totalCostPerPiece;
+  const profitMarginPercent = sellingPrice > 0 ? (profitPerPiece / sellingPrice) * 100 : 0;
+  const foodCostPercent = sellingPrice > 0 ? (foodCostPerPiece / sellingPrice) * 100 : 0;
+  const weightPerPiece = safePieces > 0 ? totalWeightGrams / safePieces : 0;
+  return {
+    foodCostPerPiece: round2(foodCostPerPiece),
+    totalCostPerPiece: round2(totalCostPerPiece),
+    profitPerPiece: round2(profitPerPiece),
+    profitMarginPercent: round2(profitMarginPercent),
+    foodCostPercent: round2(foodCostPercent),
+    totalWeightGrams: round3(totalWeightGrams),
+    weightPerPiece: round3(weightPerPiece)
+  };
+}
+
+/* ===================================================================
+ *  ALERT ENGINE — 6 Conditions (PRD §7.2 / Technical Spec §4)
+ * =================================================================== */
+const ALERT_DEFINITIONS = {
+  incomplete_data:            { type: 'incomplete_data',            severity: 'critical', emoji: '🔴', label: 'เมนูไม่สมบูรณ์' },
+  profit_negative:            { type: 'profit_negative',            severity: 'critical', emoji: '🔴', label: 'กำไรติดลบ' },
+  profit_margin_low:          { type: 'profit_margin_low',          severity: 'critical', emoji: '🔴', label: 'กำไรต่ำกว่าเกณฑ์' },
+  unreasonable_weight:        { type: 'unreasonable_weight',        severity: 'warning',  emoji: '🟡', label: 'น้ำหนักไม่สมเหตุสมผล' },
+  ingredient_cost_outdated:   { type: 'ingredient_cost_outdated',   severity: 'warning',  emoji: '🟡', label: 'ราคาต้นทุนล้าสมัย' },
+  manual_ingredient_zero_price:{ type: 'manual_ingredient_zero_price',severity: 'critical',emoji: '🔴', label: 'วัตถุดิบราคา=0' },
+  missing_overhead_or_labor:  { type: 'missing_overhead_or_labor',  severity: 'warning',  emoji: '🟡', label: 'ขาดค่าแรง/คชจ.แฝง' },
+};
+
+/**
+ * runAlertValidation(recipe, calcResult) → string[]
+ * Returns array of alert type keys. Side-effect free — call after every save or ripple.
+ */
+function runAlertValidation(recipe, calcResult) {
+  const alerts = [];
+  const state = appState;
+  const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+  const nowTs = Date.now();
+
+  // ── Alert #1: incomplete_data ──
+  const missingFields = [];
+  if (!recipe.name || recipe.name.trim().length === 0) missingFields.push('ชื่อสูตร');
+  if (!recipe.selling_price || recipe.selling_price <= 0) missingFields.push('ราคาขาย');
+  if (!recipe.pieces_per_batch || recipe.pieces_per_batch < 1) missingFields.push('จำนวนชิ้น/Batch');
+  if (!recipe.ingredients || recipe.ingredients.length === 0) missingFields.push('ส่วนผสม');
+  if (recipe.ingredients && recipe.ingredients.some(i => !i.quantity || i.quantity <= 0)) missingFields.push('บางส่วนผสมปริมาณ=0');
+  if (missingFields.length > 0) alerts.push('incomplete_data');
+
+  // ── Alert #2: profit margin issues ──
+  const margin = calcResult.profitMarginPercent;
+  if (margin < 0) {
+    alerts.push('profit_negative');               // 🔴 ขาดทุน
+  } else if (margin < 50) {
+    alerts.push('profit_margin_low');              // 🔴 ต่ำกว่า 50%
+  }
+
+  // ── Alert #3: unreasonable weight ──
+  const wp = calcResult.weightPerPiece;
+  if (wp > 0 && (wp < 5 || wp > 2000)) alerts.push('unreasonable_weight');
+
+  // ── Alert #4: outdated ingredient price (> 90 days) ──
+  let outdatedCount = 0;
+  if (recipe.ingredients && state && state.ingredients) {
+    for (const ri of recipe.ingredients) {
+      const ing = state.ingredients.find(i => i.id === ri.ingredient_id);
+      if (ing && ing.last_price_update && ing.is_active !== false) {
+        if (nowTs - new Date(ing.last_price_update).getTime() > ninetyDays) outdatedCount++;
+      }
+    }
+  }
+  if (outdatedCount > 0) alerts.push('ingredient_cost_outdated');
+
+  // ── Alert #5: manual ingredient with zero price ──
+  if (recipe.ingredients && state && state.ingredients) {
+    let zeroCount = 0;
+    for (const ri of recipe.ingredients) {
+      const ing = state.ingredients.find(i => i.id === ri.ingredient_id);
+      if (ing && ing.is_active !== false) {
+        const isManual = ing.source === 'manual' || ing.source === 'recipe_auto';
+        const isZero = ing.price_per_unit === 0 || ri.price_per_unit === 0;
+        if (isManual && isZero) zeroCount++;
+      }
+    }
+    if (zeroCount > 0) alerts.push('manual_ingredient_zero_price');
+  }
+
+  // ── Alert #6: missing overhead AND labor (both zero) ──
+  const ovh = recipe.overhead_percent || 0;
+  const lab = recipe.labor_percent || 0;
+  if (ovh === 0 && lab === 0) alerts.push('missing_overhead_or_labor');
+
+  return alerts;
+}
+
+function getAlertInfo(type) {
+  return ALERT_DEFINITIONS[type] || { type, severity: 'warning', emoji: '🟡', label: type };
+}
+
+function getAlertSeverityClass(type) {
+  const def = ALERT_DEFINITIONS[type];
+  return def ? def.severity : 'warning';
+}
+
+/* ===================================================================
+ *  APP STATE
+ * =================================================================== */
+let appState = null;
+let currentPage = 'dashboard';
+let editingIngredientId = null;
+let currentRecipeId = null;
+
+function initAppState() {
+  let state = loadState();
+  if (!state) {
+    const mock = createMockData();
+    const recipes = createMockRecipes(mock.ingredients, mock.ingredientCategories, mock.recipeCategories);
+    state = {
+      ingredientCategories: mock.ingredientCategories,
+      recipeCategories: mock.recipeCategories,
+      ingredients: mock.ingredients,
+      recipes: recipes
+    };
+    saveState(state);
+  }
+  appState = state;
+}
+
+function persistState() { saveState(appState); if (typeof window.__onStatePersisted === 'function') window.__onStatePersisted(); }
+
+/* ===================================================================
+ *  NAVIGATION
+ * =================================================================== */
+const PAGE_TITLES = {
+  dashboard: 'กระดานควบคุม',
+  ingredients: 'คลังวัตถุดิบ',
+  recipes: 'สูตรขนมทั้งหมด',
+  'recipe-detail': 'รายละเอียดสูตร',
+  settings: 'ตั้งค่า'
+};
+
+function navigateTo(page, recipeId) {
+  // Unsaved changes check
+  if (!warnBeforeLeavingRecipe(page)) return;
+
+  currentPage = page;
+  if (page === 'recipe-detail' && recipeId) {
+    currentRecipeId = recipeId;
+    recipeHasUnsavedChanges = false; // reset on entering detail
+  }
+  if (page === 'recipe-detail') populateRecipeCategorySelect();
+  // Update header
+  document.getElementById('pageTitle').textContent = PAGE_TITLES[page] || page;
+  // Update sidebar
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === (page === 'recipe-detail' ? 'recipes' : page));
+  });
+  // Update bottom tabs
+  document.querySelectorAll('.tab-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === (page === 'recipe-detail' ? 'recipes' : page));
+  });
+  // Show/hide pages
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  const targetPage = document.getElementById('page-' + (page === 'recipe-detail' ? 'recipe-detail' : page));
+  if (targetPage) targetPage.classList.add('active');
+  // Close mobile sidebar
+  closeMobileSidebar();
+  // Render
+  if (page === 'dashboard') renderDashboard();
+  else if (page === 'ingredients') renderIngredients();
+  else if (page === 'recipes') renderRecipes();
+  else if (page === 'recipe-detail') renderRecipeDetail(recipeId);
+  else if (page === 'settings') renderSettings();
+
+  // Update last_viewed_at
+  if (recipeId) {
+    const recipe = appState.recipes.find(r => r.id === recipeId);
+    if (recipe) {
+      recipe.last_viewed_at = new Date().toISOString();
+      persistState();
+    }
+  }
+
+  document.getElementById('lastUpdate').textContent = 'อัปเดต: ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+}
+
+function toggleMobileSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  sidebar.classList.toggle('mobile-open');
+  overlay.classList.toggle('open');
+}
+
+function closeMobileSidebar() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
+/* ===================================================================
+ *  TOAST
+ * =================================================================== */
+function showToast(type, message, duration = 4000) {
+  const ICONS = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  toast.innerHTML = `
+    <span class="toast-icon" aria-hidden="true">${ICONS[type] || ICONS.info}</span>
+    <span style="flex:1">${message}</span>
+    <button class="toast-close" onclick="dismissToast(this.parentElement)" aria-label="ปิดการแจ้งเตือน">✕</button>
+  `;
+  container.appendChild(toast);
+  if (duration > 0) {
+    setTimeout(() => dismissToast(toast), duration);
+  }
+}
+
+function dismissToast(toast) {
+  if (!toast || toast.classList.contains('removing')) return;
+  toast.classList.add('removing');
+  setTimeout(() => toast.remove(), 200);
+}
+
+/* ===================================================================
+ *  RENDER :: DASHBOARD (enhanced per PRD §3)
+ * =================================================================== */
+function renderDashboard() {
+  const recipes = appState.recipes;
+  const completeRecipes = recipes.filter(r => r.is_complete);
+  const alertRecipes = recipes.filter(r => r.has_alerts);
+
+  // Update timestamp
+  document.getElementById('lastUpdate').textContent =
+    'อัปเดต: ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
+  // ── KPI Cards (§3.2) ──
+  // KPI #1: Total recipes
+  const totalRecipes = recipes.length;
+
+  // KPI #2: Best FC% (lowest food cost from complete recipes)
+  const bestFC = completeRecipes.length > 0
+    ? completeRecipes.reduce((a, b) => a.food_cost_percent < b.food_cost_percent ? a : b)
+    : null;
+
+  // KPI #3: Top profit per piece
+  const topProfit = completeRecipes.length > 0
+    ? completeRecipes.reduce((a, b) => a.profit_per_piece > b.profit_per_piece ? a : b)
+    : null;
+
+  // KPI #4: Alert count
+  const alertCount = alertRecipes.length;
+
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi-card dash-stagger dash-stagger-1">
+      <div class="kpi-label">📦 รายการทั้งหมด</div>
+      <div class="kpi-value">${totalRecipes}</div>
+      <div class="kpi-sub">สูตรขนมในระบบ</div>
+    </div>
+    <div class="kpi-card dash-stagger dash-stagger-2">
+      <div class="kpi-label">📉 FC% ดีที่สุด</div>
+      <div class="kpi-value" style="color:${bestFC ? fcDashColor(bestFC.food_cost_percent) : 'var(--color-text-muted)'}">${bestFC ? bestFC.food_cost_percent.toFixed(1) + '%' : '—'}</div>
+      <div class="kpi-sub" style="${bestFC ? 'cursor:pointer;color:var(--color-primary);font-weight:500' : 'color:var(--color-text-muted)'}" ${bestFC ? `onclick="navigateTo('recipe-detail','${bestFC.id}')"` : ''}>${bestFC ? escHtml(bestFC.name) : 'ยังไม่มีข้อมูล'}</div>
+    </div>
+    <div class="kpi-card dash-stagger dash-stagger-3">
+      <div class="kpi-label">💰 กำไร/ชิ้น สูงสุด</div>
+      <div class="kpi-value" style="color:${topProfit && topProfit.profit_per_piece >= 0 ? 'var(--color-primary)' : 'var(--color-accent-red)'}">${topProfit ? '฿' + topProfit.profit_per_piece.toFixed(2) : '—'}</div>
+      <div class="kpi-sub" style="${topProfit ? 'cursor:pointer;color:var(--color-primary);font-weight:500' : 'color:var(--color-text-muted)'}" ${topProfit ? `onclick="navigateTo('recipe-detail','${topProfit.id}')"` : ''}>${topProfit ? escHtml(topProfit.name) : 'ยังไม่มีข้อมูล'}</div>
+    </div>
+    <div class="kpi-card kpi-alert dash-stagger dash-stagger-4 ${alertCount > 0 ? 'pulse' : ''}">
+      <div class="kpi-label">⚠️ ต้องตรวจสอบ</div>
+      <div class="kpi-value">${alertCount}</div>
+      <div class="kpi-sub">รายการเกินเกณฑ์${alertCount > 0 ? ' — คลิกดูด้านล่าง' : ''}</div>
+    </div>`;
+
+  // ── Top 5 Profit Table (§3.4) ──
+  const top5 = [...completeRecipes]
+    .sort((a, b) => b.profit_per_piece - a.profit_per_piece)
+    .slice(0, 5);
+  const medals = ['🥇', '🥈', '🥉'];
+
+  // Wrap in stagger container
+  document.getElementById('top5Section').classList.add('dash-stagger', 'dash-stagger-6');
+
+  document.getElementById('top5Table').innerHTML = top5.length > 0 ? `
+    <table class="data-table">
+      <thead><tr>
+        <th>#</th><th>ชื่อสูตร</th><th>ราคาขาย</th><th>กำไร/ชิ้น</th><th>FC%</th>
+      </tr></thead>
+      <tbody>${top5.map((r, i) => {
+        const pctFill = Math.min(100, Math.max(0, r.food_cost_percent));
+        const barColor = fcDashColor(r.food_cost_percent);
+        const profitColor = r.profit_per_piece >= 0 ? 'var(--color-accent-green)' : 'var(--color-accent-red)';
+        return `
+        <tr onclick="navigateTo('recipe-detail','${r.id}')" role="button" tabindex="0" aria-label="เปิดสูตร ${escHtml(r.name)}">
+          <td style="font-family:var(--font-mono);font-size:14px;width:36px">${i < 3 ? medals[i] : i + 1}</td>
+          <td style="font-weight:600">${escHtml(r.name)}</td>
+          <td style="font-family:var(--font-mono)">฿${r.selling_price.toFixed(2)}</td>
+          <td style="font-family:var(--font-mono);color:${profitColor};font-weight:600">${r.profit_per_piece >= 0 ? '+' : ''}฿${r.profit_per_piece.toFixed(2)}</td>
+          <td style="min-width:140px">
+            <span class="fc-bar"><span class="fc-bar-fill" style="width:${pctFill}%;background:${barColor}"></span></span>
+            <span style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${barColor}">${r.food_cost_percent.toFixed(0)}%</span>
+          </td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>` : `<div style="padding:32px;text-align:center;color:var(--color-text-muted)">
+      <div style="font-size:32px;margin-bottom:8px">📊</div>
+      <div>ยังไม่มีสูตรที่คำนวณสมบูรณ์</div>
+      <div style="font-size:12px;margin-top:4px">ลองสร้างสูตรและเพิ่มส่วนผสมเพื่อดูข้อมูลที่นี่</div>
+    </div>`;
+
+  // ── Alert List (§3.5) ──
+  if (alertRecipes.length > 0) {
+    const alertItemsHtml = alertRecipes.map(r => {
+      const alertDetails = r.alert_reasons.map(ar => getAlertInfo(ar));
+      const alertBadges = alertDetails.map(ad =>
+        `<span class="alert-badge ${ad.severity}" title="${ad.label}">${ad.emoji} ${ad.label}</span>`
+      ).join(' ');
+
+      // Show highest-severity detail as main indicator
+      const hasCritical = alertDetails.some(ad => ad.severity === 'critical');
+      const mainIndicator = hasCritical ? '🔴' : '🟡';
+
+      return `
+      <div class="alert-item" onclick="navigateTo('recipe-detail','${r.id}')" role="button" tabindex="0"
+           aria-label="ตรวจสอบสูตร ${escHtml(r.name)}">
+        <span style="font-size:16px;flex-shrink:0">${mainIndicator}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(r.name)}</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">${alertBadges}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${fcDashColor(r.food_cost_percent)}">FC: ${r.food_cost_percent.toFixed(0)}%</div>
+          <div style="font-family:var(--font-mono);font-size:11px;color:${r.profit_per_piece >= 0 ? 'var(--color-accent-green)' : 'var(--color-accent-red)'}">${r.profit_per_piece >= 0 ? '+' : ''}฿${r.profit_per_piece.toFixed(2)}</div>
+        </div>
+        <span style="color:var(--color-text-muted);font-size:14px">→</span>
+      </div>`;
+    }).join('');
+
+    document.getElementById('alertSection').innerHTML = `
+      <div class="alert-container dash-stagger dash-stagger-7">
+        <div class="section-header" style="margin-bottom:12px">
+          <span class="section-title">⚠️ รายการต้องตรวจสอบ (${alertCount})</span>
+          <span style="font-size:12px;color:var(--color-text-muted)">คลิกเพื่อเปิดดูรายละเอียด</span>
+        </div>
+        ${alertItemsHtml}
+      </div>`;
+  } else {
+    document.getElementById('alertSection').innerHTML = '';
+  }
+}
+
+function fcGradient(pct) {
+  if (pct <= 35) return 'var(--color-accent-green)';
+  if (pct <= 45) return 'var(--color-accent-gold)';
+  return 'var(--color-accent-red)';
+}
+
+function fcDashColor(pct) {
+  if (pct <= 35) return 'var(--color-accent-green)';
+  if (pct <= 45) return 'var(--color-accent-gold)';
+  return 'var(--color-accent-red)';
+}
+
+function alertLabel(type) {
+  return getAlertInfo(type);
+}
+
+/* ===================================================================
+ *  RENDER :: INGREDIENTS
+ * =================================================================== */
+let ingFilterCategory = 'all';
+
+// Debounced search handler (300ms per PRD §4.2)
+const renderIngredientsDebounced = debounce(renderIngredients, 300);
+
+function setupIngredientSearch() {
+  const searchEl = document.getElementById('ingSearch');
+  if (!searchEl) return;
+  searchEl.removeAttribute('oninput');
+  searchEl.addEventListener('input', () => renderIngredientsDebounced());
+}
+
+function renderIngredients() {
+  const searchEl = document.getElementById('ingSearch');
+  const searchTerm = searchEl ? (searchEl.value || '').toLowerCase().trim() : '';
+  let list = appState.ingredients.filter(i => i.is_active);
+  if (searchTerm) list = list.filter(i => i.name.toLowerCase().includes(searchTerm));
+  if (ingFilterCategory !== 'all') list = list.filter(i => i.category_id === ingFilterCategory);
+
+  // Filter chips
+  const chips = [{ id: 'all', name: 'ทั้งหมด', emoji: '' }, ...appState.ingredientCategories.map(c => ({ id: c.id, name: c.name_th, emoji: c.emoji }))];
+  document.getElementById('ingFilterChips').innerHTML = chips.map(c => {
+    const catDef = c.id === 'all' ? null : appState.ingredientCategories.find(ic => ic.id === c.id);
+    const colors = catDef ? CATEGORY_COLORS[catDef.name_en] : null;
+    const active = ingFilterCategory === c.id;
+    return `<span class="chip ${active ? 'active' : ''}" style="${active && colors ? 'background:'+colors.bg+';color:'+colors.text+';font-weight:700' : ''}" onclick="ingFilterCategory='${c.id}';renderIngredients()">${c.emoji} ${c.name}</span>`;
+  }).join('');
+
+  // Count display
+  const totalActive = appState.ingredients.filter(i => i.is_active).length;
+  const countInfo = searchTerm || ingFilterCategory !== 'all'
+    ? `<span style="font-size:13px;color:var(--color-text-secondary)">แสดง ${list.length} จาก ${totalActive} รายการ</span>`
+    : `<span style="font-size:13px;color:var(--color-text-secondary)">${totalActive} รายการ</span>`;
+
+  // List — enhanced row layout per PRD §4.3
+  document.getElementById('ingredientList').innerHTML = `
+    <div style="padding:8px var(--space-md);border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center">
+      ${countInfo}
+    </div>
+    ${list.length > 0 ? list.map(ing => {
+      const cat = appState.ingredientCategories.find(c => c.id === ing.category_id);
+      const colors = cat ? CATEGORY_COLORS[cat.name_en] : CATEGORY_COLORS['other'];
+      const timeAgo = relativeTime(ing.last_price_update);
+      const fullDate = formatThaiDateTime(ing.last_price_update);
+      const isUpdated = ing.updated_at && ing.updated_at !== ing.created_at;
+      const displayDate = isUpdated ? ing.updated_at : ing.last_price_update;
+      const displayTimeAgo = relativeTime(displayDate);
+      const displayFullDate = formatThaiDateTime(displayDate);
+      const costPerGram = ing.unit_grams > 0 ? (ing.price_per_unit / (ing.unit_grams * (ing.density_g_per_ml || 1.0))) : 0;
+      return `
+    <div class="ing-row-wrapper" data-ing-id="${ing.id}">
+      <span style="font-size:20px;min-width:28px;text-align:center;flex-shrink:0">${colors ? colors.emoji : '🧁'}</span>
+      <div class="ing-row-main">
+        <div class="ing-row-meta">
+          <span class="timestamp-wrap" title="${displayFullDate}">
+            <span style="font-size:11px;color:var(--color-text-muted);font-weight:300">🕐 ${displayTimeAgo}</span>
+            <span class="ts-tooltip">${displayFullDate}</span>
+          </span>
+          <span class="tag" style="background:${colors.bg};color:${colors.text};border:1px solid ${colors.border}">${cat ? cat.name_th : 'อื่นๆ'}</span>
+        </div>
+        <div class="ing-row-name">${escHtml(ing.name)}</div>
+        <div class="ing-row-detail">
+          <span class="ing-row-price">฿${ing.price_per_unit.toFixed(2)} / ${ing.unit}</span>
+          <span style="font-size:11px;color:var(--color-text-muted)">ต้นทุน: ฿${costPerGram.toFixed(6)}/กรัม</span>
+        </div>
+      </div>
+      <div class="ing-row-actions">
+        <button class="btn-icon edit" onclick="event.stopPropagation();openIngredientModal('${ing.id}')" aria-label="แก้ไขวัตถุดิบ ${escHtml(ing.name)}" title="แก้ไข">✏</button>
+        <button class="btn-icon delete" onclick="event.stopPropagation();confirmDeleteIngredient('${ing.id}')" aria-label="ลบวัตถุดิบ ${escHtml(ing.name)}" title="ลบ">🗑</button>
+      </div>
+    </div>`;
+    }).join('') : `<div style="padding:40px;text-align:center;color:var(--color-text-muted)">
+      <div style="font-size:40px;margin-bottom:8px">🧂</div>
+      <div>ไม่พบวัตถุดิบ</div>
+      ${searchTerm || ingFilterCategory !== 'all' ? '<div style="font-size:13px;margin-top:4px">ลองเปลี่ยนคำค้นหรือตัวกรอง</div>' : ''}
+    </div>`}`;
+}
+
+function relativeTime(dateStr) {
+  if (!dateStr) return '—';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  const hrs = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (mins < 1) return 'เมื่อกี้';
+  if (mins < 60) return mins + ' นาที';
+  if (hrs < 24) return hrs + ' ชม.';
+  if (days < 30) return days + ' วัน';
+  if (days < 365) return Math.floor(days / 30) + ' เดือน';
+  return Math.floor(days / 365) + ' ปี';
+}
+
+function formatThaiDateTime(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = months[d.getMonth()];
+  const year = d.getFullYear() + 543; // Thai Buddhist year
+  const hour = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${day} ${month} ${year}, ${hour}:${min} น.`;
+}
+
+function escHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* ===================================================================
+ *  DEBOUNCE UTILITY
+ * =================================================================== */
+function debounce(fn, delay) {
+  let timer;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
+/* ===================================================================
+ *  INPUT SANITIZATION (EC-02)
+ * =================================================================== */
+function sanitizeNumberInput(el) {
+  // Allow only digits and one decimal point
+  let value = el.value;
+  // Remove any non-numeric chars except dot
+  value = value.replace(/[^0-9.]/g, '');
+  // Prevent multiple decimal points
+  const parts = value.split('.');
+  if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
+  el.value = value;
+}
+
+function validateNumberField(el, min, max) {
+  const num = parseFloat(el.value);
+  if (isNaN(num)) {
+    el.value = min !== undefined ? min : '';
+    el.classList.add('error');
+    return null;
+  }
+  el.classList.remove('error');
+  let clamped = num;
+  if (min !== undefined && num < min) clamped = min;
+  if (max !== undefined && num > max) clamped = max;
+  if (clamped !== num) el.value = clamped;
+  return clamped;
+}
+
+/* ===================================================================
+ *  INGREDIENT MODAL
+ * =================================================================== */
+function openIngredientModal(ingId) {
+  editingIngredientId = ingId || null;
+  const modal = document.getElementById('ingredientModal');
+  document.getElementById('ingModalTitle').textContent = ingId ? 'แก้ไขวัตถุดิบ' : 'เพิ่มวัตถุดิบใหม่';
+
+  // Populate category dropdown
+  document.getElementById('ingFormCategory').innerHTML = appState.ingredientCategories.map(c => `<option value="${c.id}">${c.emoji} ${c.name_th}</option>`).join('');
+
+  // Populate unit dropdown (reference unit for price)
+  document.getElementById('ingFormUnit').innerHTML = Object.keys(UNIT_GRAMS_MAP).map(u => `<option value="${u}">${u}</option>`).join('');
+
+  if (ingId) {
+    const ing = appState.ingredients.find(i => i.id === ingId);
+    if (ing) {
+      document.getElementById('ingFormName').value = ing.name;
+      document.getElementById('ingFormCategory').value = ing.category_id;
+      document.getElementById('ingFormPrice').value = ing.price_per_unit;
+      document.getElementById('ingFormUnit').value = ing.unit;
+      // Package fields: reconstruct from ingredient data
+      const refUnitGrams = UNIT_GRAMS_MAP[ing.unit] || 1000;
+      const actualPackGrams = ing.unit_grams || refUnitGrams;
+      const packRatio = actualPackGrams / refUnitGrams;
+      if (packRatio > 0.99 && packRatio < 1.01) {
+        document.getElementById('ingFormPackQty').value = '1';
+        document.getElementById('ingFormPackUnit').value = refUnitGrams >= 1000 ? 'กก.' : (refUnitGrams >= 1 ? 'กรัม' : 'มล.');
+      } else if (actualPackGrams >= 1000) {
+        document.getElementById('ingFormPackQty').value = (actualPackGrams / 1000).toFixed(2).replace(/\.?0+$/, '');
+        document.getElementById('ingFormPackUnit').value = 'กก.';
+      } else {
+        document.getElementById('ingFormPackQty').value = actualPackGrams;
+        document.getElementById('ingFormPackUnit').value = 'กรัม';
+      }
+    }
+  } else {
+    document.getElementById('ingFormName').value = '';
+    document.getElementById('ingFormCategory').value = appState.ingredientCategories[0]?.id || '';
+    document.getElementById('ingFormPrice').value = '';
+    document.getElementById('ingFormUnit').value = 'กก.';
+    document.getElementById('ingFormPackQty').value = '1';
+    document.getElementById('ingFormPackUnit').value = 'กก.';
+  }
+  clearIngFormErrors();
+  updateCostPerGramPreview();
+  modal.classList.add('open');
+}
+
+function closeIngredientModal() {
+  document.getElementById('ingredientModal').classList.remove('open');
+  editingIngredientId = null;
+  document.getElementById('ingFormName').value = '';
+  document.getElementById('ingFormPrice').value = '';
+  document.getElementById('ingFormPackQty').value = '1';
+  document.getElementById('ingFormPackUnit').value = 'กก.';
+  document.getElementById('ingCostPerGram').innerHTML = '';
+  clearIngFormErrors();
+  // Reset save button
+  const saveBtn = document.getElementById('ingSaveBtn');
+  saveBtn.textContent = 'บันทึก';
+  saveBtn.onclick = saveIngredient;
+}
+
+function clearIngFormErrors() {
+  ['ingNameError', 'ingPriceError'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = 'none'; el.textContent = ''; }
+  });
+  document.getElementById('ingFormPrice').classList.remove('error');
+  document.getElementById('ingFormName').classList.remove('error');
+}
+
+/* ===================================================================
+ *  UNIT CONVERSION LOGIC (Package → cost_per_gram)
+ * =================================================================== */
+const PACK_UNIT_TO_GRAMS = {
+  'กก.': 1000, 'กรัม': 1,
+  'ลิตร': 1000, 'มล.': 1
+};
+
+function getEffectiveTotalGrams() {
+  const packQty = parseFloat((document.getElementById('ingFormPackQty').value || '1').replace(/[^0-9.]/g, '')) || 1;
+  const packUnit = document.getElementById('ingFormPackUnit').value;
+  const gramsPerPackUnit = PACK_UNIT_TO_GRAMS[packUnit] || 1;
+  return packQty * gramsPerPackUnit;
+}
+
+function updateCostPerGramPreview() {
+  const priceEl = document.getElementById('ingFormPrice');
+  const previewEl = document.getElementById('ingCostPerGram');
+  if (!priceEl || !previewEl) return;
+
+  const price = parseFloat((priceEl.value || '0').replace(/[^0-9.]/g, ''));
+  const effectiveTotalGrams = getEffectiveTotalGrams();
+
+  if (!isNaN(price) && price > 0 && effectiveTotalGrams > 0) {
+    const costPerGram = price / effectiveTotalGrams; // FULL precision — NO rounding per PRD §6.7
+    const packQty = parseFloat((document.getElementById('ingFormPackQty').value || '1').replace(/[^0-9.]/g, '')) || 1;
+    const packUnit = document.getElementById('ingFormPackUnit').value;
+    const packUnitLabel = packUnit;
+
+    previewEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span>📦 ${packQty} ${packUnitLabel} = ${effectiveTotalGrams.toFixed(0)} กรัม</span>
+        <span style="font-weight:700">฿${costPerGram.toFixed(6)} / กรัม</span>
+      </div>`;
+  } else {
+    previewEl.innerHTML = '<span style="color:var(--color-text-muted)">💰 กรอกราคาเพื่อคำนวณต้นทุน/กรัม</span>';
+  }
+}
+
+function saveIngredient() {
+  clearIngFormErrors();
+  const name = document.getElementById('ingFormName').value.trim();
+  const catId = document.getElementById('ingFormCategory').value;
+  const priceStr = document.getElementById('ingFormPrice').value;
+  const refUnit = document.getElementById('ingFormUnit').value;
+  let valid = true;
+
+  // Validate name
+  if (!name || name.length < 2) {
+    document.getElementById('ingNameError').textContent = 'กรุณากรอกชื่อวัตถุดิบ (อย่างน้อย 2 ตัวอักษร)';
+    document.getElementById('ingNameError').style.display = 'block';
+    document.getElementById('ingFormName').classList.add('error');
+    valid = false;
+  }
+
+  // Duplicate name check
+  const dup = appState.ingredients.filter(i => i.is_active && i.name.toLowerCase().trim() === name.toLowerCase() && i.id !== editingIngredientId);
+  if (dup.length > 0) {
+    document.getElementById('ingNameError').textContent = 'มีวัตถุดิบชื่อนี้อยู่แล้วในคลัง — กรุณาใช้ชื่ออื่น';
+    document.getElementById('ingNameError').style.display = 'block';
+    document.getElementById('ingFormName').classList.add('error');
+    valid = false;
+  }
+
+  // Sanitize and validate price (EC-02)
+  const cleanPrice = priceStr.replace(/[^0-9.]/g, '');
+  const price = parseFloat(cleanPrice);
+  if (isNaN(price) || price < 0) {
+    document.getElementById('ingPriceError').textContent = 'กรุณากรอกราคาเป็นตัวเลขที่มากกว่าหรือเท่ากับ 0';
+    document.getElementById('ingPriceError').style.display = 'block';
+    document.getElementById('ingFormPrice').classList.add('error');
+    valid = false;
+  }
+
+  // Validate reference unit
+  const refUnitGrams = UNIT_GRAMS_MAP[refUnit];
+  if (!refUnitGrams || refUnitGrams <= 0) {
+    showToast('error', 'กรุณาเลือกหน่วยราคาอ้างอิงที่ถูกต้อง');
+    valid = false;
+  }
+
+  if (!valid) return;
+
+  const now = new Date().toISOString();
+  const roundedPrice = round2(price);
+
+  // === UNIT CONVERSION: Package → normalized price_per_unit (PRD §6.7) ===
+  const effectiveTotalGrams = getEffectiveTotalGrams();
+  const density = 1.0;
+
+  // Per PRD schema: price_per_unit = ราคาต่อ 1 หน่วยอ้างอิง (e.g. ฿79.20/กก.)
+  //                  unit_grams = กี่กรัมต่อ 1 หน่วยอ้างอิง (e.g. 1000 for กก.)
+  // Example: ซื้อ 25kg ราคา 1,980 THB → price_per_unit = 1980/25 = 79.20 THB/kg, unit_grams = 1000
+  const packQtySave = parseFloat((document.getElementById('ingFormPackQty').value || '1').replace(/[^0-9.]/g, '')) || 1;
+  const normalizedPricePerUnit = packQtySave > 0 ? roundedPrice / packQtySave : roundedPrice;
+
+  // cost_per_gram (FULL precision, 6 decimals — no rounding per PRD §6.7)
+  const costPerGram = refUnitGrams > 0 ? normalizedPricePerUnit / refUnitGrams : 0;
+
+  const packQty = parseFloat((document.getElementById('ingFormPackQty').value || '1').replace(/[^0-9.]/g, '')) || 1;
+  const packUnit = document.getElementById('ingFormPackUnit').value;
+  const packUnitLabel = { 'kg': 'กก.', 'g': 'กรัม', 'L': 'ลิตร', 'ml': 'มล.' }[packUnit] || packUnit;
+
+  if (editingIngredientId) {
+    const ing = appState.ingredients.find(i => i.id === editingIngredientId);
+    if (ing) {
+      const prevPricePerUnit = ing.price_per_unit;
+      const prevActualUnitGrams = ing.unit_grams;
+      const prevCostPerGram = prevActualUnitGrams > 0 ? prevPricePerUnit * refUnitGrams / prevActualUnitGrams : 0;
+
+      ing.name = name;
+      ing.category_id = catId;
+      ing.price_per_unit = round2(normalizedPricePerUnit); // price per 1 reference unit (PRD schema)
+      ing.unit = refUnit;
+      ing.unit_grams = refUnitGrams;
+      ing.density_g_per_ml = density;
+      ing.updated_at = now;
+
+      const priceChanged = Math.abs(round2(normalizedPricePerUnit) - prevPricePerUnit) > 0.001;
+
+      if (priceChanged) {
+        ing.previous_price = prevPricePerUnit;
+        ing.last_price_update = now;
+        // Ripple effect: recalculate all recipes using this ingredient
+        rippleUpdateIngredient(ing);
+        showToast('success', `🔄 อัปเดตราคา ${escHtml(name)} — ต้นทุนใหม่ ฿${costPerGram.toFixed(6)}/กรัม (เดิม ฿${prevCostPerGram.toFixed(6)}/กรัม)`, 5000);
+      } else {
+        showToast('success', `อัปเดต ${escHtml(name)} เรียบร้อยแล้ว`);
+      }
+    }
+  } else {
+    const newIng = {
+      id: 'ing_' + Date.now().toString(36),
+      name, category_id: catId,
+      price_per_unit: round2(normalizedPricePerUnit),
+      unit: refUnit, unit_grams: refUnitGrams,
+      density_g_per_ml: density, stock_quantity: 0, stock_unit: refUnit,
+      source: 'manual', is_active: true,
+      last_price_update: now, previous_price: null,
+      created_at: now, updated_at: now
+    };
+    appState.ingredients.push(newIng);
+    showToast('success', `✅ เพิ่ม '${escHtml(name)}' ในคลังแล้ว — ฿${roundedPrice.toFixed(2)}/${packQtySave} ${packUnit} → ฿${normalizedPricePerUnit.toFixed(2)}/${refUnit} (ต้นทุน ฿${costPerGram.toFixed(6)}/กรัม)`, 5000);
+  }
+  persistState();
+  closeIngredientModal();
+  renderIngredients();
+}
+
+function rippleUpdateIngredient(ing) {
+  // Update all recipes that use this ingredient
+  appState.recipes.forEach(recipe => {
+    let changed = false;
+    recipe.ingredients.forEach(ri => {
+      if (ri.ingredient_id === ing.id) {
+        const effectiveUG = ing.unit_grams * (ing.density_g_per_ml || 1.0);
+        ri.price_per_unit = ing.price_per_unit;
+        ri.ingredient_unit = ing.unit;
+        ri.ingredient_unit_grams = ing.unit_grams;
+        ri.cost_per_gram = effectiveUG > 0 ? ing.price_per_unit / effectiveUG : 0;
+        ri.total_cost = ri.cost_per_gram * ri.quantity * ri.unit_grams * (ri.density_g_per_ml || 1.0);
+        changed = true;
+      }
+    });
+    if (changed) {
+      const calc = calculateAll(recipe.ingredients, recipe.pieces_per_batch, recipe.selling_price, recipe.overhead_percent, recipe.vat_percent, recipe.labor_percent);
+      Object.assign(recipe, {
+        total_weight_grams: calc.totalWeightGrams,
+        food_cost_per_piece: calc.foodCostPerPiece,
+        total_cost_per_piece: calc.totalCostPerPiece,
+        profit_per_piece: calc.profitPerPiece,
+        profit_margin_percent: calc.profitMarginPercent,
+        food_cost_percent: calc.foodCostPercent,
+        is_complete: true,
+        has_alerts: false,
+        alert_reasons: [],
+        last_calculated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+      const alerts = runAlertValidation(recipe, calc);
+      recipe.has_alerts = alerts.length > 0;
+      recipe.alert_reasons = alerts;
+      recipe.is_complete = !alerts.includes('incomplete_data');
+    }
+  });
+}
+
+/* ===================================================================
+ *  SOFT DELETE INGREDIENT (EC-01 + PRD §4.5)
+ * =================================================================== */
+let pendingDeleteIngId = null;
+
+function confirmDeleteIngredient(ingId) {
+  pendingDeleteIngId = ingId;
+  const ing = appState.ingredients.find(i => i.id === ingId);
+  if (!ing) return;
+
+  // EC-01 Step 1: Query all recipes for usage of this ingredient
+  const usedInRecipes = appState.recipes.filter(r =>
+    r.ingredients && r.ingredients.some(ri => ri.ingredient_id === ingId)
+  );
+
+  const modal = document.getElementById('confirmModal');
+  const deleteBtn = document.getElementById('confirmDeleteBtn');
+
+  if (usedInRecipes.length === 0) {
+    // === CASE A: No recipe uses this ingredient — simple confirmation ===
+    document.getElementById('confirmTitle').textContent = 'ลบวัตถุดิบนี้ใช่ไหม?';
+    document.getElementById('confirmBody').innerHTML = `
+      <div style="text-align:center;padding:8px 0">
+        <div style="font-size:32px;margin-bottom:8px">🗑</div>
+        <p style="font-size:16px;font-weight:600;color:var(--color-text-primary)">"${escHtml(ing.name)}"</p>
+        <p style="font-size:14px;color:var(--color-text-secondary);margin-top:4px">฿${ing.price_per_unit.toFixed(2)} / ${ing.unit}</p>
+        <p style="font-size:13px;color:var(--color-text-muted);margin-top:8px">วัตถุดิบนี้จะถูกซ่อนจากคลัง<br>ข้อมูลจะไม่ถูกลบถาวร (Soft Delete)</p>
+      </div>`;
+    deleteBtn.textContent = 'ลบ 🗑';
+    deleteBtn.style.background = 'var(--color-accent-red)';
+    deleteBtn.style.color = '#fff';
+  } else {
+    // === CASE B: Ingredient is used in recipes — warning with recipe list ===
+    document.getElementById('confirmTitle').textContent = `⚠️ วัตถุดิบนี้ถูกใช้ใน ${usedInRecipes.length} สูตร`;
+    document.getElementById('confirmBody').innerHTML = `
+      <div style="margin-bottom:4px">
+        <p style="font-size:15px;font-weight:600;color:var(--color-text-primary)">"${escHtml(ing.name)}"</p>
+        <p style="font-size:13px;color:var(--color-text-secondary)">฿${ing.price_per_unit.toFixed(2)} / ${ing.unit} — ยังถูกใช้ใน:</p>
+      </div>
+      <div class="confirm-recipe-list">
+        <ul style="padding-left:20px;margin:0">
+          ${usedInRecipes.map(r => `<li>${escHtml(r.name)}</li>`).join('')}
+        </ul>
+      </div>
+      <div class="confirm-warning-box">
+        <p style="font-weight:600;margin-bottom:4px">⚠️ ผลกระทบ:</p>
+        <p>• สูตรข้างต้นจะยังคงใช้<b>ราคาเดิม</b> (฿${ing.price_per_unit.toFixed(2)}/${ing.unit}) ในการคำนวณ</p>
+        <p>• <b>จะไม่สามารถอัปเดตราคา</b>ของวัตถุดิบนี้ในสูตรเหล่านั้นได้อีก</p>
+        <p>• หากต้องการอัปเดตราคาในภายหลัง กรุณากู้คืนวัตถุดิบนี้ก่อน</p>
+      </div>`;
+    deleteBtn.textContent = 'ยืนยันลบ (ซ่อนจากคลัง)';
+    deleteBtn.style.background = 'var(--color-accent-red)';
+    deleteBtn.style.color = '#fff';
+  }
+
+  deleteBtn.onclick = () => executeDeleteIngredient();
+  modal.classList.add('open');
+}
+
+function closeConfirmModal() {
+  document.getElementById('confirmModal').classList.remove('open');
+  pendingDeleteIngId = null;
+}
+
+function executeDeleteIngredient() {
+  if (!pendingDeleteIngId) return;
+  const ing = appState.ingredients.find(i => i.id === pendingDeleteIngId);
+  if (!ing) return;
+
+  const ingName = ing.name;
+
+  // EC-01 Step 3: Soft Delete — set is_active = false, never remove from array
+  ing.is_active = false;
+  ing.updated_at = new Date().toISOString();
+
+  // EC-01 Step 4 - UI Behavior:
+  // - Ingredient vanishes from active list immediately (filtered by is_active == true)
+  // - Recipes using it still show snapshot data (name, price) normally
+  // - Ripple effect skips inactive ingredients
+
+  persistState();
+  closeConfirmModal();
+  renderIngredients();
+
+  // Show appropriate toast
+  const usedInRecipes = appState.recipes.filter(r =>
+    r.ingredients && r.ingredients.some(ri => ri.ingredient_id === pendingDeleteIngId)
+  );
+  if (usedInRecipes.length > 0) {
+    showToast('warning',
+      `⚠️ "${ingName}" ถูกซ่อนจากคลัง — ${usedInRecipes.length} สูตรยังใช้ราคาเดิม ฿${ing.price_per_unit.toFixed(2)}/${ing.unit} อยู่`,
+      6000
+    );
+  } else {
+    showToast('success', `"${ingName}" ถูกลบออกจากคลังเรียบร้อยแล้ว`);
+  }
+}
+
+/* ===================================================================
+ *  RENDER :: RECIPES OVERVIEW (enhanced per PRD §5)
+ * =================================================================== */
+let recipeFilterCategory = 'all';
+
+function renderRecipes() {
+  const searchTerm = (document.getElementById('recipeSearch').value || '').toLowerCase().trim();
+  const sortBy = document.getElementById('recipeSort').value;
+
+  let list = [...appState.recipes];
+  if (searchTerm) list = list.filter(r => r.name.toLowerCase().includes(searchTerm));
+  if (recipeFilterCategory !== 'all') list = list.filter(r => r.category_id === recipeFilterCategory);
+
+  // Sort
+  const sortConfig = {
+    'last_viewed': (a, b) => new Date(b.last_viewed_at || 0) - new Date(a.last_viewed_at || 0),
+    'profit_high': (a, b) => b.profit_margin_percent - a.profit_margin_percent,
+    'fc_best': (a, b) => a.food_cost_percent - b.food_cost_percent,
+    'name_az': (a, b) => a.name.localeCompare(b.name, 'th')
+  };
+  list.sort(sortConfig[sortBy] || sortConfig['last_viewed']);
+
+  // Category filter chips
+  const chips = [{ id: 'all', name: 'ทั้งหมด', emoji: '📋' }, ...appState.recipeCategories.map(c => ({ id: c.id, name: c.name_th, emoji: c.emoji }))];
+  document.getElementById('recipeFilterChips').innerHTML = chips.map(c => {
+    const catDef = c.id === 'all' ? null : appState.recipeCategories.find(rc => rc.id === c.id);
+    const colors = catDef ? CATEGORY_COLORS[catDef.name_en] : null;
+    const active = recipeFilterCategory === c.id;
+    return `<span class="chip ${active ? 'active' : ''}" style="${active && colors ? 'background:'+colors.bg+';color:'+colors.text+';font-weight:700' : ''}" onclick="recipeFilterCategory='${c.id}';renderRecipes()">${c.emoji} ${c.name}</span>`;
+  }).join('');
+
+  // Count and sort display
+  const sortLabels = { 'last_viewed': 'เปิดล่าสุด', 'profit_high': 'กำไรสูงสุด', 'fc_best': 'FC% ดีสุด', 'name_az': 'ชื่อ A-Z' };
+  document.getElementById('recipeCardGrid').innerHTML = `
+    <div style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:0 4px;margin-bottom:4px">
+      <span class="recipe-count-label">${list.length} จาก ${appState.recipes.length} สูตร · เรียงตาม: ${sortLabels[sortBy] || 'เปิดล่าสุด'}</span>
+    </div>
+    ${list.length > 0 ? list.map(r => {
+      const cat = appState.recipeCategories.find(c => c.id === r.category_id);
+      const colors = cat ? CATEGORY_COLORS[cat.name_en] : null;
+      const emoji = cat ? cat.emoji : '🧁';
+      const alertBadge = r.has_alerts ? buildAlertBadgeHtml(r) : '';
+      const isIncomplete = !r.is_complete;
+      return `
+    <div class="recipe-card" onclick="openRecipeDetail('${r.id}')" role="button" tabindex="0" aria-label="เปิดสูตร ${escHtml(r.name)}">
+      <div class="recipe-thumb" style="background:${colors ? colors.bg : '#F5F0E8'}">
+        <span class="recipe-emoji-placeholder">${emoji}</span>
+        ${alertBadge}
+        ${isIncomplete ? '<span style="position:absolute;bottom:8px;left:8px;background:var(--color-text-muted);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:var(--radius-sm)">⏳ ร่าง</span>' : ''}
+      </div>
+      <div class="recipe-card-body">
+        <div class="recipe-card-name-row">
+          <div class="recipe-card-name" style="flex:1;min-width:0">${escHtml(r.name)}</div>
+        </div>
+        <div class="recipe-card-numbers">
+          <div><span class="num-label">ราคาขาย</span><span class="num-value">฿${r.selling_price.toFixed(0)}</span></div>
+          <div><span class="num-label">กำไร/ชิ้น</span><span class="num-value ${r.profit_per_piece >= 0 ? 'num-profit positive' : 'num-profit negative'}">฿${r.profit_per_piece.toFixed(2)}</span></div>
+          <div><span class="num-label">FC%</span><span class="num-value" style="color:${fcColor(r.food_cost_percent)}">${r.food_cost_percent.toFixed(0)}%</span></div>
+        </div>
+        <div class="recipe-card-actions">
+          <span style="font-size:11px;color:var(--color-text-muted)">${relativeTime(r.last_viewed_at)}</span>
+          <span style="flex:1"></span>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openRecipeDetail('${r.id}')" style="font-size:12px">เปิด</button>
+          <button class="btn btn-ghost btn-sm" onclick="cloneRecipe('${r.id}',event)" style="font-size:12px" title="คัดลอกสูตร">📋</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteRecipe('${r.id}',event)" style="font-size:12px;color:var(--color-accent-red)" title="ลบสูตร">🗑</button>
+        </div>
+      </div>
+    </div>`;
+    }).join('') : `<div style="padding:40px;text-align:center;color:var(--color-text-muted);grid-column:1/-1">
+      <div style="font-size:40px;margin-bottom:8px">📖</div>
+      <div>ไม่พบสูตรขนม</div>
+      ${searchTerm || recipeFilterCategory !== 'all' ? '<div style="font-size:13px;margin-top:4px">ลองเปลี่ยนคำค้นหรือตัวกรอง</div>' : '<div style="font-size:13px;margin-top:4px">คลิก "สร้างสูตร" เพื่อเริ่มต้น</div>'}
+    </div>`}`;
+}
+
+function buildAlertBadgeHtml(recipe) {
+  const reasons = recipe.alert_reasons || [];
+  if (reasons.length === 0) return '';
+  const details = reasons.map(getAlertInfo);
+  const criticalCount = details.filter(d => d.severity === 'critical').length;
+  const warningCount = details.filter(d => d.severity === 'warning').length;
+
+  let label, emoji;
+  if (criticalCount > 0) {
+    emoji = '🔴';
+    label = criticalCount > 1 ? `${criticalCount} ปัญหาสำคัญ` : 'ต้องตรวจสอบ';
+  } else {
+    emoji = '🟡';
+    label = warningCount > 1 ? `${warningCount} รายการเตือน` : 'แจ้งเตือน';
+  }
+  const titleText = details.map(d => `${d.emoji} ${d.label}`).join(', ');
+  return `<span class="recipe-alert-badge" title="${titleText}">${emoji} ${label}</span>`;
+}
+
+function openRecipeDetail(recipeId) {
+  // navigateTo already updates last_viewed_at per PRD §5.3
+  navigateTo('recipe-detail', recipeId);
+}
+
+function fcColor(pct) {
+  if (pct <= 35) return 'var(--color-accent-green)';
+  if (pct <= 45) return 'var(--color-accent-gold)';
+  return 'var(--color-accent-red)';
+}
+
+/* ===================================================================
+ *  RENDER :: RECIPE DETAIL (enhanced per PRD §6)
+ * =================================================================== */
+function renderRecipeDetail(recipeId) {
+  const recipe = appState.recipes.find(r => r.id === recipeId);
+  if (!recipe) { navigateTo('recipes'); return; }
+
+  // Editable name
+  const nameInput = document.getElementById('detailRecipeNameInput');
+  nameInput.value = recipe.name;
+
+  // Weight badge
+  const wp = recipe.pieces_per_batch > 0 ? recipe.total_weight_grams / recipe.pieces_per_batch : 0;
+  updateWeightBadge(recipe);
+
+  // Control panel values
+  document.getElementById('rcpSellingPrice').value = recipe.selling_price;
+  document.getElementById('rcpPieces').value = recipe.pieces_per_batch;
+  const catSel = document.getElementById('rcpCategory');
+  if (catSel) catSel.value = recipe.category_id || '';
+
+  document.getElementById('rcpOverhead').value = recipe.overhead_percent;
+  document.getElementById('rcpVat').value = recipe.vat_percent;
+  document.getElementById('rcpLabor').value = recipe.labor_percent;
+  document.getElementById('stepperDown').disabled = recipe.pieces_per_batch <= 1;
+
+  renderRecipeResult(recipe);
+  renderDonutChart(recipe);
+  renderRecipeIngredients(recipe);
+
+  // Wire up drag-and-drop after DOM update
+  setTimeout(() => setupDragAndDrop(recipe), 50);
+
+  // Scroll to top
+  document.getElementById('page-recipe-detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function updateRecipeName() {
+  const recipe = appState.recipes.find(r => r.id === currentRecipeId);
+  if (!recipe) return;
+  const newName = document.getElementById('detailRecipeNameInput').value.trim();
+  if (newName && newName !== recipe.name) {
+    recipe.name = newName;
+    recipe.updated_at = new Date().toISOString();
+    persistState();
+  }
+}
+
+function updateWeightBadge(recipe) {
+  const calc = calculateAll(recipe.ingredients, recipe.pieces_per_batch, recipe.selling_price, recipe.overhead_percent, recipe.vat_percent, recipe.labor_percent);
+  document.getElementById('recipeWeightBadge').textContent =
+    calc.totalWeightGrams > 0 ? `น้ำหนักรวม ${calc.totalWeightGrams.toFixed(0)}g · ${calc.weightPerPiece.toFixed(1)}g/ชิ้น` : '';
+}
+
+function renderRecipeResult(recipe) {
+  const calc = calculateAll(recipe.ingredients, recipe.pieces_per_batch, recipe.selling_price, recipe.overhead_percent, recipe.vat_percent, recipe.labor_percent);
+  const profitEmoji = calc.profitPerPiece > 0 ? '✅' : '⛔';
+  const fcColorVal = fcColor(calc.foodCostPercent);
+  document.getElementById('summaryBar').innerHTML = `
+    <div><div class="sb-value num-flash-target" id="sbTotalCost">฿${calc.totalCostPerPiece.toFixed(2)}</div><div class="sb-label">ต้นทุนรวม/ชิ้น</div></div>
+    <div><div class="sb-value num-flash-target" id="sbProfit">฿${calc.profitPerPiece.toFixed(2)} ${profitEmoji}</div><div class="sb-label">กำไร/ชิ้น (${calc.profitMarginPercent.toFixed(1)}%)</div></div>
+    <div><div class="sb-value num-flash-target" id="sbFC" style="color:${fcColorVal === 'var(--color-accent-green)' ? '#A8D5BA' : fcColorVal === 'var(--color-accent-red)' ? '#F5B7B1' : '#F5D78A'}">${calc.foodCostPercent.toFixed(1)}%</div><div class="sb-label">Food Cost %</div></div>`;
+
+  // Trigger num-flash animation per PRD §6.3
+  triggerNumFlash();
+}
+
+function triggerNumFlash() {
+  document.querySelectorAll('.num-flash-target').forEach(el => {
+    el.classList.remove('num-flash');
+    void el.offsetWidth; // force reflow
+    el.classList.add('num-flash');
+  });
+}
+
+/* ===================================================================
+ *  DONUT CHART SVG (PRD §6.4)
+ * =================================================================== */
+function renderDonutChart(recipe) {
+  const calc = calculateAll(recipe.ingredients, recipe.pieces_per_batch, recipe.selling_price, recipe.overhead_percent, recipe.vat_percent, recipe.labor_percent);
+  const ingredients = recipe.ingredients || [];
+
+  // Aggregate costs by category
+  const byCategory = {};
+  ingredients.forEach(ri => {
+    const cat = appState.ingredientCategories.find(c => c.id === ri.category_id);
+    const key = cat ? cat.name_en : 'other';
+    if (!byCategory[key]) byCategory[key] = { total: 0, name_th: cat ? cat.name_th : 'อื่นๆ', emoji: cat ? cat.emoji : '🧁' };
+    byCategory[key].total += (ri.total_cost || calcIngredientCost(ri));
+  });
+
+  const totalFoodCost = ingredients.reduce((sum, ri) => sum + (ri.total_cost || calcIngredientCost(ri)), 0);
+  const entries = Object.entries(byCategory).sort((a, b) => b[1].total - a[1].total);
+
+  if (entries.length === 0 || totalFoodCost <= 0) {
+    document.getElementById('donutSvgContainer').innerHTML =
+      '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--color-text-muted)">ยังไม่มีส่วนผสม</div>';
+    document.getElementById('donutLegend').innerHTML = '';
+    return;
+  }
+
+  // Build SVG donut
+  const cx = 120, cy = 120, rOuter = 100, rInner = 65;
+  const circumference = 2 * Math.PI * ((rOuter + rInner) / 2);
+
+  let angleOffset = 0;
+  const slicesHtml = entries.map(([key, data]) => {
+    const pct = data.total / totalFoodCost;
+    const sweepAngle = pct * 2 * Math.PI;
+    const startAngle = angleOffset;
+    const endAngle = angleOffset + sweepAngle;
+    angleOffset = endAngle;
+
+    const x1o = cx + rOuter * Math.cos(startAngle);
+    const y1o = cy + rOuter * Math.sin(startAngle);
+    const x2o = cx + rOuter * Math.cos(endAngle);
+    const y2o = cy + rOuter * Math.sin(endAngle);
+    const x1i = cx + rInner * Math.cos(endAngle);
+    const y1i = cy + rInner * Math.sin(endAngle);
+    const x2i = cx + rInner * Math.cos(startAngle);
+    const y2i = cy + rInner * Math.sin(startAngle);
+
+    const largeArc = sweepAngle > Math.PI ? 1 : 0;
+    const colors = CATEGORY_COLORS[key] || CATEGORY_COLORS['other'];
+
+    const pathD = [
+      `M ${x1o.toFixed(2)} ${y1o.toFixed(2)}`,
+      `A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${x2o.toFixed(2)} ${y2o.toFixed(2)}`,
+      `L ${x1i.toFixed(2)} ${y1i.toFixed(2)}`,
+      `A ${rInner} ${rInner} 0 ${largeArc} 0 ${x2i.toFixed(2)} ${y2i.toFixed(2)}`,
+      'Z'
+    ].join(' ');
+
+    return `<path class="donut-slice" d="${pathD}" fill="${colors.bg}" stroke="${colors.border}" stroke-width="1.5" data-cat="${key}" title="${data.name_th}: ฿${data.total.toFixed(2)} (${(pct*100).toFixed(1)}%)" />`;
+  }).join('');
+
+  document.getElementById('donutSvgContainer').innerHTML = `
+    <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+      ${slicesHtml}
+    </svg>
+    <div class="donut-center-overlay">
+      <div class="dc-value">${calc.foodCostPercent.toFixed(1)}%</div>
+      <div class="dc-label">Food Cost</div>
+    </div>`;
+
+  // Legend
+  document.getElementById('donutLegend').innerHTML = entries.map(([key, data]) => {
+    const pct = (data.total / totalFoodCost) * 100;
+    const colors = CATEGORY_COLORS[key] || CATEGORY_COLORS['other'];
+    return `
+    <div class="donut-legend-item" data-cat="${key}" onclick="scrollToIngredientCategory('${key}')" title="คลิกเพื่อดูส่วนผสมประเภทนี้">
+      <span class="donut-legend-swatch" style="background:${colors.bg};border:1px solid ${colors.border}"></span>
+      <span class="donut-legend-name">${data.emoji} ${data.name_th}</span>
+      <span class="donut-legend-cost">฿${data.total.toFixed(2)}</span>
+      <span class="donut-legend-pct">${pct.toFixed(1)}%</span>
+    </div>`;
+  }).join('');
+}
+
+function scrollToIngredientCategory(catKey) {
+  // Highlight matching rows
+  const rows = document.querySelectorAll('.ingredient-row-draggable');
+  rows.forEach(row => {
+    const rowCat = row.dataset.catKey;
+    if (rowCat === catKey) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      row.classList.add('highlight-row');
+      setTimeout(() => row.classList.remove('highlight-row'), 2500);
+    }
+  });
+}
+
+/* ===================================================================
+ *  RENDER :: RECIPE INGREDIENTS with Drag & Drop (PRD §6.5-6.6)
+ * =================================================================== */
+function renderRecipeIngredients(recipe) {
+  const list = recipe.ingredients.sort((a, b) => a.order - b.order);
+  document.getElementById('ingCount').textContent = list.length;
+
+  if (list.length === 0) {
+    document.getElementById('recipeIngredientList').innerHTML = `
+      <div style="padding:32px;text-align:center;color:var(--color-text-muted)">
+        <div style="font-size:36px;margin-bottom:8px">🧂</div>
+        <div>ยังไม่มีส่วนผสม</div>
+        <div style="font-size:13px;margin-top:4px">คลิก "+ เพิ่มส่วนผสม" เพื่อเริ่มต้น</div>
+      </div>`;
+    setupDragAndDrop(recipe);
+    return;
+  }
+
+  const head = `
+    <div class="ri-head">
+      <span class="ri-c-handle"></span>
+      <span class="ri-c-tag">ประเภท</span>
+      <span class="ri-c-name">วัตถุดิบ</span>
+      <span class="ri-c-price">ราคา/หน่วย</span>
+      <span class="ri-c-qty-h">ปริมาณ</span>
+      <span class="ri-c-unit">หน่วย</span>
+      <span class="ri-c-cost">ต้นทุน</span>
+      <span class="ri-c-del"></span>
+    </div>`;
+
+  const rows = list.map((ri, idx) => {
+    const cat = appState.ingredientCategories.find(c => c.id === ri.category_id);
+    const colors = cat ? CATEGORY_COLORS[cat.name_en] : CATEGORY_COLORS['other'];
+    const cost = ri.total_cost || calcIngredientCost(ri);
+    return `
+    <div class="ri-row ingredient-row-draggable" draggable="true" data-idx="${idx}" data-cat-key="${cat ? cat.name_en : 'other'}" id="dragRow-${idx}">
+      <span class="ri-c-handle drag-handle" title="ลากเพื่อจัดลำดับ" aria-hidden="true">⋮⋮</span>
+      <span class="ri-c-tag tag" style="background:${colors.bg};color:${colors.text};border:1px solid ${colors.border}">${cat ? cat.name_th : 'อื่นๆ'}</span>
+      <span class="ri-c-name" title="${escHtml(ri.name)}">${escHtml(ri.name)}</span>
+      <span class="ri-c-price">฿${ri.price_per_unit.toFixed(2)}/${ri.ingredient_unit}</span>
+      <input type="text" inputmode="decimal" class="ri-c-qty ing-qty-input" value="${ri.quantity}" oninput="sanitizeNumberInput(this);onIngQtyChange('${recipe.id}',${idx},this.value)" onblur="recalculateRecipe()" onclick="event.stopPropagation()" aria-label="ปริมาณ ${escHtml(ri.name)}">
+      <span class="ri-c-unit">${ri.unit}</span>
+      <span class="ri-c-cost ing-cost" id="ingCost-${idx}">฿${cost.toFixed(2)}</span>
+      <button class="ri-c-del btn-icon delete" onclick="event.stopPropagation();removeIngredientFromRecipe('${recipe.id}',${idx})" aria-label="ลบส่วนผสม ${escHtml(ri.name)}" title="ลบ">🗑</button>
+    </div>`;
+  }).join('');
+
+  document.getElementById('recipeIngredientList').innerHTML = head + rows;
+  setupDragAndDrop(recipe);
+}
+
+/* ===================================================================
+ *  HTML5 DRAG & DROP — Ingredient Reorder (PRD §6.6)
+ * =================================================================== */
+let dragSourceIdx = null;
+
+function setupDragAndDrop(recipe) {
+  const rows = document.querySelectorAll('.ingredient-row-draggable');
+  rows.forEach(row => {
+    // Drag start (Phase 1 — Lift)
+    row.addEventListener('dragstart', (e) => {
+      dragSourceIdx = parseInt(row.dataset.idx);
+      row.classList.add('drag-active');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', row.dataset.idx);
+      // Make drag image semi-transparent
+      setTimeout(() => row.classList.add('dragging'), 0);
+    });
+
+    row.addEventListener('dragend', (e) => {
+      row.classList.remove('drag-active', 'dragging');
+      // Remove all drag-over indicators
+      document.querySelectorAll('.ingredient-row-draggable.drag-over').forEach(r => r.classList.remove('drag-over'));
+      dragSourceIdx = null;
+    });
+
+    // Drag over (Phase 2 — Placeholder)
+    row.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const targetIdx = parseInt(row.dataset.idx);
+      if (targetIdx !== dragSourceIdx) {
+        // Remove previous indicators
+        document.querySelectorAll('.ingredient-row-draggable.drag-over').forEach(r => {
+          if (parseInt(r.dataset.idx) !== targetIdx) r.classList.remove('drag-over');
+        });
+        row.classList.add('drag-over');
+      }
+    });
+
+    row.addEventListener('dragleave', (e) => {
+      // Only remove if we're actually leaving the element
+      if (!row.contains(e.relatedTarget)) {
+        row.classList.remove('drag-over');
+      }
+    });
+
+    // Drop (Phase 3 — Reorder)
+    row.addEventListener('drop', (e) => {
+      e.preventDefault();
+      row.classList.remove('drag-over');
+
+      const targetIdx = parseInt(row.dataset.idx);
+      if (dragSourceIdx === null || dragSourceIdx === targetIdx) return;
+
+      // Reorder the ingredients array
+      const sorted = recipe.ingredients.sort((a, b) => a.order - b.order);
+      const [moved] = sorted.splice(dragSourceIdx, 1);
+      sorted.splice(targetIdx, 0, moved);
+
+      // Update order field
+      sorted.forEach((ri, i) => ri.order = i);
+      recipe.ingredients = sorted;
+
+      // Phase 4 — Settle: save to state and re-render with flash
+      recipe.updated_at = new Date().toISOString();
+      persistState();
+      renderRecipeIngredients(recipe);
+
+      // Flash the settled row
+      setTimeout(() => {
+        const settledRow = document.getElementById('dragRow-' + targetIdx);
+        if (settledRow) {
+          settledRow.classList.add('drag-settled');
+          setTimeout(() => settledRow.classList.remove('drag-settled'), 600);
+        }
+      }, 100);
+
+      dragSourceIdx = null;
+    });
+  });
+}
+
+function onIngQtyChange(recipeId, idx, value) {
+  const recipe = appState.recipes.find(r => r.id === recipeId);
+  if (!recipe) return;
+  const qty = parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
+  const sorted = recipe.ingredients.sort((a, b) => a.order - b.order);
+  if (sorted[idx]) {
+    sorted[idx].quantity = qty;
+    const density = sorted[idx].density_g_per_ml || 1.0;
+    const effectiveUG = sorted[idx].ingredient_unit_grams * density;
+    sorted[idx].cost_per_gram = effectiveUG > 0 ? sorted[idx].price_per_unit / effectiveUG : 0;
+    sorted[idx].total_cost = sorted[idx].cost_per_gram * qty * sorted[idx].unit_grams * density;
+    // Update cost display live
+    const costEl = document.getElementById('ingCost-' + idx);
+    if (costEl) costEl.textContent = '฿' + sorted[idx].total_cost.toFixed(2);
+  }
+}
+
+function removeIngredientFromRecipe(recipeId, idx) {
+  const recipe = appState.recipes.find(r => r.id === recipeId);
+  if (!recipe) return;
+  const sorted = recipe.ingredients.sort((a, b) => a.order - b.order);
+  sorted.splice(idx, 1);
+  sorted.forEach((ri, i) => ri.order = i);
+  recipe.ingredients = sorted;
+  recalculateRecipe();
+  persistState();
+  renderRecipeIngredients(recipe);
+}
+
+function onRecipeFieldChange() {
+  const recipe = appState.recipes.find(r => r.id === currentRecipeId);
+  if (!recipe) return;
+  recipeHasUnsavedChanges = true;
+  recipe.selling_price = parseFloat(document.getElementById('rcpSellingPrice').value) || 0;
+  recipe.pieces_per_batch = Math.max(1, parseInt(document.getElementById('rcpPieces').value) || 1);
+  recipe.overhead_percent = parseFloat(document.getElementById('rcpOverhead').value) || 0;
+  recipe.vat_percent = parseFloat(document.getElementById('rcpVat').value) || 0;
+  recipe.labor_percent = parseFloat(document.getElementById('rcpLabor').value) || 0;
+  document.getElementById('rcpPieces').value = recipe.pieces_per_batch;
+  // Update stepper buttons
+  document.getElementById('stepperDown').disabled = recipe.pieces_per_batch <= 1;
+  document.getElementById('stepperUp').disabled = recipe.pieces_per_batch >= 9999;
+}
+
+function stepperChange(delta) {
+  const input = document.getElementById('rcpPieces');
+  let val = parseInt(input.value) || 1;
+  val = Math.max(1, Math.min(9999, val + delta));
+  input.value = val;
+  onRecipeFieldChange();
+  recalculateRecipe();
+}
+
+// Debounced recalculation for real-time oninput (PRD §6.3 — 200ms debounce)
+const recalculateRecipeDebounced = debounce(() => {
+  if (!currentRecipeId) return;
+  recalculateRecipe();
+}, 200);
+
+function recalculateRecipe() {
+  const recipe = appState.recipes.find(r => r.id === currentRecipeId);
+  if (!recipe) return;
+  onRecipeFieldChange();
+
+  // Recalculate individual ingredient costs
+  recipe.ingredients.forEach(ri => {
+    const density = ri.density_g_per_ml || 1.0;
+    const effectiveUG = ri.ingredient_unit_grams * density;
+    ri.cost_per_gram = effectiveUG > 0 ? ri.price_per_unit / effectiveUG : 0;
+    ri.total_cost = ri.cost_per_gram * ri.quantity * ri.unit_grams * density;
+  });
+
+  const calc = calculateAll(recipe.ingredients, recipe.pieces_per_batch, recipe.selling_price, recipe.overhead_percent, recipe.vat_percent, recipe.labor_percent);
+  Object.assign(recipe, {
+    total_weight_grams: calc.totalWeightGrams,
+    food_cost_per_piece: calc.foodCostPerPiece,
+    total_cost_per_piece: calc.totalCostPerPiece,
+    profit_per_piece: calc.profitPerPiece,
+    profit_margin_percent: calc.profitMarginPercent,
+    food_cost_percent: calc.foodCostPercent,
+    is_complete: true, has_alerts: false, alert_reasons: [],
+    last_calculated_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  });
+  const alerts = runAlertValidation(recipe, calc);
+  recipe.has_alerts = alerts.length > 0;
+  recipe.alert_reasons = alerts;
+  recipe.is_complete = !alerts.includes('incomplete_data');
+
+  updateWeightBadge(recipe);
+  renderRecipeResult(recipe);
+  renderDonutChart(recipe);
+  renderRecipeIngredients(recipe);
+  persistState();
+  showToast('success', 'คำนวณใหม่เรียบร้อยแล้ว', 2000);
+}
+
+function saveCurrentRecipe() {
+  if (!currentRecipeId) return;
+  onRecipeFieldChange();
+  recalculateRecipe();
+  recipeHasUnsavedChanges = false;
+  persistState();
+  showToast('success', 'บันทึกสูตรเรียบร้อยแล้ว', 2500);
+}
+
+/* ===================================================================
+ *  ADD INGREDIENT TO RECIPE (dedicated modal)
+ * =================================================================== */
+let addToRecipeSelectedIngId = null;
+
+function openAddIngredientToRecipeModal() {
+  const recipe = appState.recipes.find(r => r.id === currentRecipeId);
+  if (!recipe) return;
+
+  addToRecipeSelectedIngId = null;
+  addToRecipeCatFilter = 'all';
+  const searchEl = document.getElementById('addToRecipeSearch');
+  if (searchEl) searchEl.value = '';
+  renderAddToRecipeIngList();
+
+  document.getElementById('addToRecipeUnit').innerHTML = Object.keys(UNIT_GRAMS_MAP).map(u => `<option value="${u}">${u}</option>`).join('');
+  document.getElementById('addToRecipeUnit').value = 'กรัม';
+  document.getElementById('addToRecipeQty').value = '1';
+  document.getElementById('addToRecipePreview').textContent = '';
+
+  document.getElementById('addToRecipeModal').classList.add('open');
+}
+
+function closeAddToRecipeModal() {
+  document.getElementById('addToRecipeModal').classList.remove('open');
+  addToRecipeSelectedIngId = null;
+  addToRecipeCatFilter = 'all';
+  const searchEl = document.getElementById('addToRecipeSearch');
+  if (searchEl) searchEl.value = '';
+  document.querySelectorAll('.quick-add-item.selected').forEach(el => el.classList.remove('selected'));
+}
+
+function selectAddToRecipeIngredient(ingId) {
+  addToRecipeSelectedIngId = ingId;
+
+  // Highlight selected item
+  document.querySelectorAll('.quick-add-item').forEach(el => {
+    el.classList.toggle('selected', el.dataset.ingId === ingId);
+  });
+
+  // Update preview
+  const ing = appState.ingredients.find(i => i.id === ingId);
+  if (ing) {
+    const cpg = ing.unit_grams > 0 ? (ing.price_per_unit / (ing.unit_grams * (ing.density_g_per_ml || 1.0))) : 0;
+    document.getElementById('addToRecipePreview').textContent =
+      `📍 ${ing.name} — ฿${ing.price_per_unit.toFixed(2)}/${ing.unit} (ต้นทุน: ฿${cpg.toFixed(6)}/กรัม)`;
+  }
+}
+
+function addIngredientToRecipe() {
+  const recipe = appState.recipes.find(r => r.id === currentRecipeId);
+  if (!recipe) return;
+
+  if (!addToRecipeSelectedIngId) {
+    showToast('error', 'กรุณาเลือกวัตถุดิบจากรายการ');
+    return;
+  }
+
+  const ing = appState.ingredients.find(i => i.id === addToRecipeSelectedIngId);
+  if (!ing) return;
+
+  const qtyStr = document.getElementById('addToRecipeQty').value.replace(/[^0-9.]/g, '');
+  const unit = document.getElementById('addToRecipeUnit').value;
+  const qty = parseFloat(qtyStr) || 0;
+
+  if (qty <= 0) {
+    showToast('error', 'กรุณากรอกปริมาณที่มากกว่า 0');
+    return;
+  }
+
+  const unitGrams = UNIT_GRAMS_MAP[unit] || 1;
+  const newOrder = recipe.ingredients.length;
+  const snapshot = makeIngSnapshotFn(ing, qty, unit, unitGrams, newOrder);
+  recipe.ingredients.push(snapshot);
+
+  // Recalculate recipe
+  recalcAndSaveRecipe(recipe);
+  persistState();
+  closeAddToRecipeModal();
+  renderRecipeDetail(currentRecipeId);
+  showToast('success', `✅ เพิ่ม '${ing.name}' ${qty} ${unit} ในสูตรแล้ว`, 3000);
+}
+
+function recalcAndSaveRecipe(recipe) {
+  recipe.ingredients.forEach(ri => {
+    const density = ri.density_g_per_ml || 1.0;
+    const effectiveUG = ri.ingredient_unit_grams * density;
+    ri.cost_per_gram = effectiveUG > 0 ? ri.price_per_unit / effectiveUG : 0;
+    ri.total_cost = ri.cost_per_gram * ri.quantity * ri.unit_grams * density;
+  });
+
+  const calc = calculateAll(recipe.ingredients, recipe.pieces_per_batch, recipe.selling_price, recipe.overhead_percent, recipe.vat_percent, recipe.labor_percent);
+  Object.assign(recipe, {
+    total_weight_grams: calc.totalWeightGrams,
+    food_cost_per_piece: calc.foodCostPerPiece,
+    total_cost_per_piece: calc.totalCostPerPiece,
+    profit_per_piece: calc.profitPerPiece,
+    profit_margin_percent: calc.profitMarginPercent,
+    food_cost_percent: calc.foodCostPercent,
+    last_calculated_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  });
+  const alerts = runAlertValidation(recipe, calc);
+  recipe.has_alerts = alerts.length > 0;
+  recipe.alert_reasons = alerts;
+  recipe.is_complete = !alerts.includes('incomplete_data');
+}
+
+function openRecipeModal() {
+  // Create a new blank recipe
+  const now = new Date().toISOString();
+  const newRecipe = {
+    id: 'rec_' + Date.now().toString(36),
+    name: 'สูตรใหม่',
+    category_id: appState.recipeCategories[0]?.id || 'cat_rec_other',
+    selling_price: 0, pieces_per_batch: 1,
+    overhead_percent: 0, vat_percent: 0, labor_percent: 0,
+    ingredients: [],
+    total_weight_grams: 0, food_cost_per_piece: 0, total_cost_per_piece: 0,
+    profit_per_piece: 0, profit_margin_percent: 0, food_cost_percent: 0,
+    is_complete: false, has_alerts: true, alert_reasons: ['incomplete_data'],
+    last_calculated_at: now, last_viewed_at: now,
+    thumbnail_url: null, created_at: now, updated_at: now
+  };
+  appState.recipes.push(newRecipe);
+  persistState();
+  navigateTo('recipe-detail', newRecipe.id);
+}
+
+/* ===================================================================
+ *  STORE NAME
+ * =================================================================== */
+let storeName = 'ขนมหวานใจ';
+function loadStoreName() { storeName = localStorage.getItem('bakery_store_name') || 'ขนมหวานใจ'; updateStoreNameDisplay(); }
+function updateStoreNameDisplay() {
+  const el = document.getElementById('storeNameDisplay'); if (el) el.textContent = 'ร้าน: ' + storeName;
+  const settingsEl = document.getElementById('settingsStoreName'); if (settingsEl) settingsEl.value = storeName;
+}
+function editStoreName() { navigateTo('settings'); setTimeout(() => document.getElementById('settingsStoreName').focus(), 200); }
+function saveStoreName() {
+  storeName = document.getElementById('settingsStoreName').value.trim() || 'ขนมหวานใจ';
+  localStorage.setItem('bakery_store_name', storeName);
+  updateStoreNameDisplay(); showToast('success', 'บันทึกชื่อร้านเรียบร้อยแล้ว');
+}
+
+/* ===================================================================
+ *  SETTINGS — Category Management
+ * =================================================================== */
+function renderIngCategoryManager() {
+  document.getElementById('ingCategoryManager').innerHTML = appState.ingredientCategories.map(c => {
+    const colors = CATEGORY_COLORS[c.name_en] || CATEGORY_COLORS['other'];
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--color-border)">
+      <span style="font-size:18px">${c.emoji}</span><span style="flex:1">${c.name_th} (${c.name_en})</span>
+      <button class="btn btn-ghost btn-sm" onclick="deleteIngredientCategory('${c.id}')" style="color:var(--color-accent-red)">ลบ</button></div>`;
+  }).join('') || '<div style="color:var(--color-text-muted)">ยังไม่มีหมวดหมู่</div>';
+}
+function addIngredientCategory() {
+  const name = document.getElementById('newIngCatName').value.trim();
+  const emoji = document.getElementById('newIngCatEmoji').value.trim() || '🧁';
+  if (!name) { showToast('error', 'กรุณากรอกชื่อหมวดหมู่'); return; }
+  const nameEn = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_ก-๙]/g, '');
+  appState.ingredientCategories.push({
+    id: 'cat_ing_' + Date.now().toString(36), name_th: name, name_en: nameEn || 'custom',
+    scope: 'ingredient', emoji, sort_order: appState.ingredientCategories.length + 1
+  });
+  if (!CATEGORY_COLORS[nameEn]) CATEGORY_COLORS[nameEn] = { bg: '#F5F0E8', text: '#7A6055', border: '#E8DDD0', emoji };
+  persistState(); renderIngCategoryManager(); renderIngredients();
+  document.getElementById('newIngCatName').value = ''; document.getElementById('newIngCatEmoji').value = '';
+  showToast('success', `เพิ่มหมวดหมู่ "${name}" แล้ว`);
+}
+function deleteIngredientCategory(catId) {
+  const used = appState.ingredients.filter(i => i.category_id === catId && i.is_active);
+  if (used.length > 0) { showToast('error', `ไม่สามารถลบได้ — มี ${used.length} วัตถุดิบใช้หมวดหมู่นี้อยู่`); return; }
+  appState.ingredientCategories = appState.ingredientCategories.filter(c => c.id !== catId);
+  persistState(); renderIngCategoryManager(); renderIngredients(); showToast('success', 'ลบหมวดหมู่แล้ว');
+}
+
+function renderRecipeCategoryManager() {
+  document.getElementById('recipeCategoryManager').innerHTML = appState.recipeCategories.map(c => {
+    const colors = CATEGORY_COLORS[c.name_en] || {};
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--color-border)">
+      <span style="font-size:18px">${c.emoji}</span><span style="flex:1">${c.name_th}</span>
+      <button class="btn btn-ghost btn-sm" onclick="deleteRecipeCategory('${c.id}')" style="color:var(--color-accent-red)">ลบ</button></div>`;
+  }).join('') || '<div style="color:var(--color-text-muted)">ยังไม่มีหมวดหมู่</div>';
+}
+function addRecipeCategory() {
+  const name = document.getElementById('newRecCatName').value.trim();
+  const emoji = document.getElementById('newRecCatEmoji').value.trim() || '🧁';
+  if (!name) { showToast('error', 'กรุณากรอกชื่อหมวดหมู่'); return; }
+  const nameEn = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_ก-๙]/g, '');
+  appState.recipeCategories.push({
+    id: 'cat_rec_' + Date.now().toString(36), name_th: name, name_en: nameEn || 'custom',
+    scope: 'recipe', emoji, sort_order: appState.recipeCategories.length + 1
+  });
+  if (!CATEGORY_COLORS[nameEn]) CATEGORY_COLORS[nameEn] = { bg: '#F5F0E8', text: '#7A6055', border: '#E8DDD0', emoji };
+  persistState(); renderRecipeCategoryManager(); renderRecipes();
+  document.getElementById('newRecCatName').value = ''; document.getElementById('newRecCatEmoji').value = '';
+  showToast('success', `เพิ่มหมวดหมู่ "${name}" แล้ว`);
+}
+function deleteRecipeCategory(catId) {
+  const used = appState.recipes.filter(r => r.category_id === catId);
+  if (used.length > 0) { showToast('error', `ไม่สามารถลบได้ — มี ${used.length} สูตรใช้หมวดหมู่นี้อยู่`); return; }
+  appState.recipeCategories = appState.recipeCategories.filter(c => c.id !== catId);
+  persistState(); renderRecipeCategoryManager(); renderRecipes(); showToast('success', 'ลบหมวดหมู่แล้ว');
+}
+
+/* ===================================================================
+ *  SETTINGS — Reset All Data
+ * =================================================================== */
+function showResetConfirm() {
+  const modal = document.getElementById('confirmModal');
+  document.getElementById('confirmTitle').textContent = '⚠️ ยืนยันการคืนค่าดั้งเดิม';
+  document.getElementById('confirmBody').innerHTML = `
+    <div style="text-align:center;padding:8px 0">
+      <div style="font-size:40px;margin-bottom:8px">⚠️</div>
+      <p style="font-weight:600;color:var(--color-accent-red);font-size:16px">การดำเนินการนี้จะลบข้อมูลทั้งหมด</p>
+      <p style="font-size:13px;color:var(--color-text-secondary);margin-top:8px">วัตถุดิบและสูตรขนมทั้งหมดจะถูกลบอย่างถาวร ไม่สามารถกู้คืนได้</p>
+      <p style="font-size:14px;font-weight:600;margin-top:12px">พิมพ์ <b>yes</b> เพื่อยืนยัน:</p>
+      <input type="text" id="resetConfirmInput" class="input-field" style="width:120px;text-align:center;margin:8px auto;display:block" placeholder="yes" autocomplete="off">
+      <p id="resetError" style="display:none;color:var(--color-accent-red);font-size:12px"></p>
+    </div>`;
+  const deleteBtn = document.getElementById('confirmDeleteBtn');
+  deleteBtn.textContent = 'ลบข้อมูลทั้งหมด';
+  deleteBtn.style.background = 'var(--color-accent-red)'; deleteBtn.style.color = '#fff';
+  deleteBtn.onclick = () => executeResetData();
+  document.getElementById('confirmModal').classList.add('open');
+}
+function executeResetData() {
+  const input = document.getElementById('resetConfirmInput');
+  if (!input || input.value.trim().toLowerCase() !== 'yes') {
+    const errEl = document.getElementById('resetError');
+    if (errEl) { errEl.textContent = 'กรุณาพิมพ์ "yes" เพื่อยืนยัน'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  // Strict reset: empty ingredients & recipes. Keep category definitions so the
+  // app stays usable (dropdowns / tags still work).
+  appState.ingredients = [];
+  appState.recipes = [];
+
+  // Clear in-memory references to now-deleted records
+  currentRecipeId = null;
+  recipeHasUnsavedChanges = false;
+
+  // Persist the EMPTY (but valid, non-null) state. Because loadState() will now
+  // return this object instead of null, initAppState() will NEVER regenerate the
+  // demo/mock data again — even after a page reload.
+  persistState();
+
+  closeConfirmModal();
+  showToast('success', 'ล้างข้อมูลทั้งหมดเรียบร้อยแล้ว', 3000);
+
+  // Re-render in place to show the empty states (no reload needed)
+  navigateTo('dashboard');
+}
+
+/* ===================================================================
+ *  RECIPE DELETE & CLONE
+ * =================================================================== */
+function deleteRecipe(recipeId, event) {
+  event.stopPropagation();
+  const recipe = appState.recipes.find(r => r.id === recipeId);
+  if (!recipe) return;
+  pendingDeleteRecipeId = recipeId;
+  const modal = document.getElementById('confirmModal');
+  document.getElementById('confirmTitle').textContent = 'ลบสูตรนี้ใช่ไหม?';
+  document.getElementById('confirmBody').innerHTML = `<div style="text-align:center;padding:8px 0">
+    <div style="font-size:32px;margin-bottom:8px">🗑</div>
+    <p style="font-size:16px;font-weight:600">"${escHtml(recipe.name)}"</p>
+    <p style="font-size:13px;color:var(--color-text-muted);margin-top:4px">สูตรนี้จะถูกลบออกจากระบบอย่างถาวร</p></div>`;
+  const deleteBtn = document.getElementById('confirmDeleteBtn');
+  deleteBtn.textContent = 'ลบสูตร'; deleteBtn.style.background = 'var(--color-accent-red)'; deleteBtn.style.color = '#fff';
+  deleteBtn.onclick = () => { appState.recipes = appState.recipes.filter(r => r.id !== recipeId); persistState(); closeConfirmModal(); renderRecipes(); showToast('success', 'ลบสูตรแล้ว'); };
+  modal.classList.add('open');
+}
+let pendingDeleteRecipeId = null;
+function cloneRecipe(recipeId, event) {
+  event.stopPropagation();
+  const recipe = appState.recipes.find(r => r.id === recipeId);
+  if (!recipe) return;
+  const now = new Date().toISOString();
+  const clone = JSON.parse(JSON.stringify(recipe));
+  clone.id = 'rec_' + Date.now().toString(36);
+  clone.name = recipe.name + ' (สำเนา)';
+  clone.last_viewed_at = now; clone.created_at = now; clone.updated_at = now;
+  appState.recipes.push(clone);
+  persistState(); renderRecipes();
+  showToast('success', `สร้างสำเนา "${escHtml(recipe.name)}" แล้ว`);
+}
+
+/* ===================================================================
+ *  ADD-TO-RECIPE MODAL — Search & Category Filter
+ * =================================================================== */
+let addToRecipeCatFilter = 'all';
+function renderAddToRecipeIngList() {
+  const searchTerm = (document.getElementById('addToRecipeSearch')?.value || '').toLowerCase().trim();
+  const activeIngredients = appState.ingredients.filter(i => i.is_active);
+  let list = activeIngredients;
+  if (searchTerm) list = list.filter(i => i.name.toLowerCase().includes(searchTerm));
+  if (addToRecipeCatFilter !== 'all') list = list.filter(i => i.category_id === addToRecipeCatFilter);
+
+  // Category chips
+  const chips = [{ id: 'all', name: 'ทั้งหมด', emoji: '📋' }, ...appState.ingredientCategories.map(c => ({ id: c.id, name: c.name_th, emoji: c.emoji }))];
+  document.getElementById('addToRecipeCatChips').innerHTML = chips.map(c => {
+    const active = addToRecipeCatFilter === c.id;
+    const catDef = c.id === 'all' ? null : appState.ingredientCategories.find(ic => ic.id === c.id);
+    const colors = catDef ? CATEGORY_COLORS[catDef.name_en] : null;
+    return `<span class="chip ${active ? 'active' : ''}" style="${active && colors ? 'background:'+colors.bg+';color:'+colors.text+';font-weight:700;font-size:11px' : 'font-size:11px'}" onclick="addToRecipeCatFilter='${c.id}';renderAddToRecipeIngList()">${c.emoji} ${c.name}</span>`;
+  }).join('');
+
+  document.getElementById('addToRecipeIngList').innerHTML = list.length > 0 ? list.map(ing => {
+    const cat = appState.ingredientCategories.find(c => c.id === ing.category_id);
+    const colors = cat ? CATEGORY_COLORS[cat.name_en] : CATEGORY_COLORS['other'];
+    const cpg = ing.unit_grams > 0 ? (ing.price_per_unit / (ing.unit_grams * (ing.density_g_per_ml || 1.0))) : 0;
+    return `<div class="quick-add-item" data-ing-id="${ing.id}" onclick="selectAddToRecipeIngredient('${ing.id}')">
+      <span style="font-size:18px">${colors ? colors.emoji : '🧁'}</span>
+      <span style="flex:1;font-weight:500">${escHtml(ing.name)}</span>
+      <span style="font-family:var(--font-mono);font-size:13px;color:var(--color-primary);font-weight:500">฿${ing.price_per_unit.toFixed(2)}/${ing.unit}</span></div>`;
+  }).join('') : `<div style="padding:12px;text-align:center;color:var(--color-text-muted);font-size:13px">${searchTerm ? 'ไม่พบวัตถุดิบ — กด "สร้างวัตถุดิบใหม่" ด้านล่าง' : 'ไม่มีวัตถุดิบในคลัง'}</div>`;
+}
+function quickCreateIngredientFromRecipe() {
+  closeAddToRecipeModal();
+  openIngredientModal();
+  showToast('info', 'สร้างวัตถุดิบที่นี่ แล้วกลับมาเพิ่มในสูตรอีกครั้ง', 4000);
+}
+
+/* ===================================================================
+ *  RECIPE DETAIL — Category Selector & Unsaved Changes
+ * =================================================================== */
+let recipeHasUnsavedChanges = false;
+function populateRecipeCategorySelect() {
+  const sel = document.getElementById('rcpCategory');
+  if (!sel) return;
+  sel.innerHTML = appState.recipeCategories.map(c => `<option value="${c.id}">${c.emoji} ${c.name_th}</option>`).join('');
+}
+function onRecipeCategoryChange() {
+  const recipe = appState.recipes.find(r => r.id === currentRecipeId);
+  if (recipe) { recipe.category_id = document.getElementById('rcpCategory').value; recipeHasUnsavedChanges = true; }
+}
+let pendingLeavePage = null;
+
+function warnBeforeLeavingRecipe(page) {
+  if (currentPage === 'recipe-detail' && recipeHasUnsavedChanges && page !== 'recipe-detail') {
+    pendingLeavePage = page;
+    document.getElementById('unsavedModal').classList.add('open');
+    return false; // abort current navigation; modal buttons resume it
+  }
+  return true;
+}
+
+function closeUnsavedModal() {
+  document.getElementById('unsavedModal').classList.remove('open');
+  pendingLeavePage = null;
+}
+
+function unsavedLeaveWithoutSaving() {
+  const target = pendingLeavePage;
+  recipeHasUnsavedChanges = false;
+  closeUnsavedModal();
+  if (target) navigateTo(target);
+}
+
+function unsavedSaveThenLeave() {
+  const target = pendingLeavePage;
+  saveCurrentRecipe();          // existing fn: recalculates, persists, clears flag, toasts
+  closeUnsavedModal();
+  if (target) navigateTo(target);
+}
+
+/* ===================================================================
+ *  RENDER :: SETTINGS
+ * =================================================================== */
+function renderSettings() {
+  document.getElementById('settingsStoreName').value = storeName;
+  renderIngCategoryManager();
+  renderRecipeCategoryManager();
+  if (typeof updateSyncUI === 'function') updateSyncUI();
+}
+
+/* ===================================================================
+ *  CLOUD SYNC (Cloud Firestore + Email/Password Auth)
+ *  Additive layer over LocalStorage; LocalStorage stays source of truth.
+ *  Firebase config is hard-coded in <head> as window.FIREBASE_CONFIG.
+ *  Each account's data lives privately at  bakery_syncs/{uid}.
+ * =================================================================== */
+const SYNC_CFG_KEY = 'bakery_boh_sync_config';
+const SYNC_USER_KEY = 'bakery_boh_sync_user';
+let syncConfig = loadSyncConfig();   // { auto, lastSynced }
+let syncUnsub = null;
+let syncBusy = false;
+let applyingRemote = false;
+let pendingAuthIntent = null;        // 'login' | 'signup' | null (session restore)
+
+function loadSyncConfig() {
+  try { return JSON.parse(localStorage.getItem(SYNC_CFG_KEY)) || {}; }
+  catch (e) { return {}; }
+}
+function saveSyncConfig() {
+  try { localStorage.setItem(SYNC_CFG_KEY, JSON.stringify(syncConfig)); } catch (e) {}
+}
+function getDeviceId() {
+  let id = localStorage.getItem('bakery_boh_device_id');
+  if (!id) { id = 'dev_' + Math.random().toString(36).slice(2, 10); localStorage.setItem('bakery_boh_device_id', id); }
+  return id;
+}
+function fbLoaded() { return !!(window.__fb && window.__fb.ready); }   // app + SDK initialized
+function fbAuthed() { return !!(window.__fb && window.__fb.uid); }     // signed in
+
+function usernameToEmail(u) {
+  u = (u || '').trim();
+  return u.indexOf('@') !== -1 ? u : (u.toLowerCase().replace(/\s+/g, '') + '@bakery-boh.local');
+}
+function friendlyAuthError(e) {
+  const c = (e && e.code) || '';
+  if (c.indexOf('invalid-credential') !== -1 || c.indexOf('wrong-password') !== -1 || c.indexOf('user-not-found') !== -1)
+    return 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง (หรือยังไม่ได้สมัคร)';
+  if (c.indexOf('email-already-in-use') !== -1) return 'มีบัญชีนี้อยู่แล้ว กรุณาเข้าสู่ระบบ';
+  if (c.indexOf('weak-password') !== -1) return 'รหัสผ่านสั้นเกินไป (อย่างน้อย 6 ตัวอักษร)';
+  if (c.indexOf('operation-not-allowed') !== -1) return 'ยังไม่ได้เปิด Email/Password ใน Firebase Console';
+  if (c.indexOf('network') !== -1) return 'เชื่อมต่อเครือข่ายไม่สำเร็จ';
+  return (e && (e.message || e.code)) || 'เกิดข้อผิดพลาด';
+}
+
+function readCreds() {
+  if (!fbLoaded()) { showToast('warning', 'ยังไม่ได้ตั้งค่า Firebase (วาง config ในไฟล์ HTML)'); return null; }
+  const u = document.getElementById('syncUsername').value.trim();
+  const p = document.getElementById('syncPassword').value;
+  if (!u) { showToast('warning', 'กรุณากรอกชื่อผู้ใช้'); return null; }
+  if (!p || p.length < 6) { showToast('warning', 'รหัสผ่านอย่างน้อย 6 ตัวอักษร'); return null; }
+  return { email: usernameToEmail(u), password: p, username: u };
+}
+
+async function loginSync() {
+  const c = readCreds(); if (!c) return;
+  const btn = document.getElementById('btnSyncLogin');
+  try {
+    if (btn) btn.disabled = true;
+    pendingAuthIntent = 'login';
+    await window.__fb.signIn(window.__fb.auth, c.email, c.password);
+    localStorage.setItem(SYNC_USER_KEY, c.username);
+    // window.__onAuthChange handles pull + UI
+  } catch (e) { pendingAuthIntent = null; console.error(e); showToast('error', friendlyAuthError(e)); }
+  finally { if (btn) btn.disabled = false; }
+}
+
+async function signupSync() {
+  const c = readCreds(); if (!c) return;
+  const btn = document.getElementById('btnSyncSignup');
+  try {
+    if (btn) btn.disabled = true;
+    pendingAuthIntent = 'signup';
+    await window.__fb.signUp(window.__fb.auth, c.email, c.password);
+    localStorage.setItem(SYNC_USER_KEY, c.username);
+    showToast('success', 'สมัครสมาชิกสำเร็จ');
+    // window.__onAuthChange pushes current local data up for the new account
+  } catch (e) { pendingAuthIntent = null; console.error(e); showToast('error', friendlyAuthError(e)); }
+  finally { if (btn) btn.disabled = false; }
+}
+
+async function logoutSync() {
+  try {
+    stopAutoSync();
+    await window.__fb.signOut(window.__fb.auth);
+    showToast('info', 'ออกจากระบบแล้ว');
+  } catch (e) { console.error(e); }
+}
+
+/* Called by the Firebase module whenever auth state changes (login / logout / restore) */
+window.__onAuthChange = function (user) {
+  if (user) {
+    const savedName = localStorage.getItem(SYNC_USER_KEY) || (user.email || '').split('@')[0];
+    const nameEl = document.getElementById('syncAccountName'); if (nameEl) nameEl.textContent = savedName;
+    if (syncConfig.auto) startAutoSync();                 // snapshot delivers latest cloud data
+    if (pendingAuthIntent === 'login') {
+      pullFromCloud(false);                               // explicit login → fetch this account's data
+    } else if (pendingAuthIntent === 'signup') {
+      setTimeout(function () { if (fbAuthed()) pushToCloud(false); }, 600); // seed cloud with local data
+    }
+    pendingAuthIntent = null;
+  } else {
+    stopAutoSync();
+    pendingAuthIntent = null;
+  }
+  updateSyncUI();
+};
+
+async function pushToCloud(silent) {
+  if (!fbAuthed()) { if (!silent) showToast('warning', 'กรุณาเข้าสู่ระบบก่อน'); return; }
+  try {
+    syncBusy = true; updateSyncUI();
+    await window.__fb.setDoc(window.__fb.docRef(window.__fb.uid), {
+      state: appState,
+      storeName: (typeof storeName !== 'undefined' ? storeName : ''),
+      device: getDeviceId(),
+      ts: Date.now(),
+      updatedAt: window.__fb.serverTimestamp()
+    });
+    syncConfig.lastSynced = Date.now(); saveSyncConfig();
+    if (!silent) showToast('success', 'อัปโหลดข้อมูลขึ้นคลาวด์แล้ว');
+  } catch (e) {
+    console.error(e); showToast('error', 'อัปโหลดไม่สำเร็จ: ' + (e.code || e.message));
+  } finally { syncBusy = false; updateSyncUI(); }
+}
+
+async function pullFromCloud(silent) {
+  if (!fbAuthed()) { if (!silent) showToast('warning', 'กรุณาเข้าสู่ระบบก่อน'); return; }
+  try {
+    syncBusy = true; updateSyncUI();
+    const snap = await window.__fb.getDoc(window.__fb.docRef(window.__fb.uid));
+    if (!snap.exists()) { if (!silent) showToast('info', 'ยังไม่มีข้อมูลบนคลาวด์'); return; }
+    applyRemoteState(snap.data());
+    if (!silent) showToast('success', 'ดึงข้อมูลจากคลาวด์แล้ว');
+  } catch (e) {
+    console.error(e); if (!silent) showToast('error', 'ดึงข้อมูลไม่สำเร็จ: ' + (e.code || e.message));
+  } finally { syncBusy = false; updateSyncUI(); }
+}
+
+function applyRemoteState(data) {
+  if (!data || !data.state) return;
+  applyingRemote = true;
+  appState = data.state;
+  if (typeof data.storeName === 'string' && data.storeName) {
+    storeName = data.storeName;
+    try { localStorage.setItem('bakery_store_name', storeName); } catch (e) {}
+    if (typeof updateStoreNameDisplay === 'function') updateStoreNameDisplay();
+  }
+  persistState();              // hook is skipped while applyingRemote is true
+  applyingRemote = false;
+  syncConfig.lastSynced = Date.now(); saveSyncConfig();
+  syncRerender();
+}
+
+function syncRerender() {
+  if (typeof renderDashboard === 'function') renderDashboard();
+  if (typeof renderIngredients === 'function') renderIngredients();
+  if (typeof renderRecipes === 'function') renderRecipes();
+  if (typeof renderSettings === 'function') renderSettings();
+  if (currentPage === 'recipe-detail') {
+    const ok = currentRecipeId && appState.recipes.some(r => r.id === currentRecipeId);
+    navigateTo(ok ? 'recipe-detail' : 'recipes', ok ? currentRecipeId : undefined);
+  }
+}
+
+const syncPushDebounced = debounce(function () {
+  if (!applyingRemote && syncConfig.auto && fbAuthed()) pushToCloud(true);
+}, 1500);
+
+function startAutoSync() {
+  if (!fbAuthed()) return;
+  stopAutoSync();
+  syncUnsub = window.__fb.onSnapshot(window.__fb.docRef(window.__fb.uid), function (snap) {
+    if (!snap.exists()) return;
+    const data = snap.data();
+    if (data.device === getDeviceId()) return;     // ignore our own write echoed back
+    applyRemoteState(data);
+    showToast('info', 'ซิงค์ข้อมูลจากอุปกรณ์อื่นแล้ว', 2500);
+  }, function (err) { console.error('snapshot error', err); });
+  window.__onStatePersisted = syncPushDebounced;
+}
+function stopAutoSync() {
+  if (syncUnsub) { try { syncUnsub(); } catch (e) {} syncUnsub = null; }
+  window.__onStatePersisted = null;
+}
+function toggleAutoSync(on) {
+  syncConfig.auto = !!on; saveSyncConfig();
+  if (on) {
+    if (fbAuthed()) { startAutoSync(); pushToCloud(true); showToast('success', 'เปิดซิงค์อัตโนมัติแล้ว'); }
+    else showToast('info', 'จะเริ่มซิงค์อัตโนมัติเมื่อเข้าสู่ระบบ');
+  } else { stopAutoSync(); showToast('info', 'ปิดซิงค์อัตโนมัติแล้ว'); }
+  updateSyncUI();
+}
+
+function updateSyncUI() {
+  const loaded = fbLoaded();
+  const authed = fbAuthed();
+  const dot = document.getElementById('syncStatusDot');
+  const txt = document.getElementById('syncStatusText');
+  if (dot) dot.style.background = authed ? 'var(--color-accent-green)' : (loaded ? 'var(--color-accent-gold)' : 'var(--color-text-muted)');
+  if (txt) txt.textContent = authed ? 'เข้าสู่ระบบแล้ว' : (loaded ? 'ยังไม่ได้เข้าสู่ระบบ' : 'ยังไม่ได้ตั้งค่า Firebase');
+
+  const loginView = document.getElementById('syncLoginView');
+  const acctView = document.getElementById('syncAccountView');
+  if (loginView) loginView.style.display = authed ? 'none' : 'flex';
+  if (acctView) acctView.style.display = authed ? 'flex' : 'none';
+
+  const userEl = document.getElementById('syncUsername');
+  if (userEl && !authed && document.activeElement !== userEl && !userEl.value) {
+    const last = localStorage.getItem(SYNC_USER_KEY); if (last) userEl.value = last;
+  }
+  const auto = document.getElementById('syncAutoToggle'); if (auto) auto.checked = !!syncConfig.auto;
+
+  ['btnSyncLogin', 'btnSyncSignup'].forEach(function (id) {
+    const b = document.getElementById(id); if (b) b.disabled = !loaded;
+  });
+  ['btnSyncPush', 'btnSyncPull'].forEach(function (id) {
+    const b = document.getElementById(id); if (b) b.disabled = !authed || syncBusy;
+  });
+  const ls = document.getElementById('syncLastSynced');
+  if (ls) ls.textContent = syncConfig.lastSynced
+    ? ('ซิงค์ล่าสุด: ' + new Date(syncConfig.lastSynced).toLocaleString('th-TH'))
+    : 'ยังไม่เคยซิงค์';
+}
+
+function initSyncOnLoad() {
+  // Initial paint; the Firebase module's onAuthStateChanged drives everything else.
+  updateSyncUI();
+  window.addEventListener('fb-sdk-ready', function () { updateSyncUI(); });
+}
+
+/* ===================================================================
+ *  INITIALIZATION
+ * =================================================================== */
+function init() {
+  initAppState();
+  loadStoreName();
+
+  document.getElementById('lastUpdate').textContent = 'อัปเดต: ' + new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+  renderDashboard();
+
+  // Setup debounced search
+  setupIngredientSearch();
+  const recipeSearchEl = document.getElementById('recipeSearch');
+  if (recipeSearchEl) {
+    const renderRecipesDebounced = debounce(renderRecipes, 300);
+    recipeSearchEl.addEventListener('input', () => renderRecipesDebounced());
+  }
+
+  window.addEventListener('scroll', () => {
+    document.getElementById('headerBar').classList.toggle('scrolled', window.scrollY > 4);
+  }, { passive: true });
+
+  // Live cost-per-gram preview
+  const ingPriceEl = document.getElementById('ingFormPrice'), ingUnitEl = document.getElementById('ingFormUnit');
+  const ingPackQtyEl = document.getElementById('ingFormPackQty'), ingPackUnitEl = document.getElementById('ingFormPackUnit');
+  if (ingPriceEl) ingPriceEl.addEventListener('input', () => updateCostPerGramPreview());
+  if (ingUnitEl) ingUnitEl.addEventListener('change', () => updateCostPerGramPreview());
+  if (ingPackQtyEl) ingPackQtyEl.addEventListener('input', () => updateCostPerGramPreview());
+  if (ingPackUnitEl) ingPackUnitEl.addEventListener('change', () => updateCostPerGramPreview());
+
+  // Recipe category select
+  populateRecipeCategorySelect();
+
+  // Cloud sync: restore saved connection if present
+  initSyncOnLoad();
+
+  // Escape key closes modals only
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeIngredientModal(); closeAddToRecipeModal(); closeConfirmModal(); closeUnsavedModal(); closeMobileSidebar();
+    }
+  });
+  // DO NOT close modals on overlay click — only via explicit buttons
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+<!-- ========== FIREBASE SDK (Cloud Firestore + Auth) — loaded as ES module ========== -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
+  import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut }
+    from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
+
+  window.__fb = {
+    loaded: true,     // SDK scripts loaded
+    ready: false,     // app + firestore + auth initialized
+    uid: null,        // current signed-in user id
+    db: null, auth: null, _app: null,
+    signIn: signInWithEmailAndPassword,
+    signUp: createUserWithEmailAndPassword,
+    signOut: signOut,
+    docRef(uid) { return doc(this.db, 'bakery_syncs', uid); },
+    getDoc, setDoc, onSnapshot, serverTimestamp
+  };
+
+  const cfg = window.FIREBASE_CONFIG;
+  if (cfg && cfg.apiKey && cfg.apiKey.indexOf('PASTE_') === -1) {
+    try {
+      window.__fb._app = initializeApp(cfg);
+      window.__fb.db   = getFirestore(window.__fb._app);
+      window.__fb.auth = getAuth(window.__fb._app);
+      window.__fb.ready = true;
+      onAuthStateChanged(window.__fb.auth, function (user) {
+        window.__fb.uid = user ? user.uid : null;
+        if (typeof window.__onAuthChange === 'function') window.__onAuthChange(user);
+      });
+    } catch (e) { console.error('Firebase init failed', e); }
+  }
+  window.dispatchEvent(new Event('fb-sdk-ready'));
+</script>
+</body>
+</html>
